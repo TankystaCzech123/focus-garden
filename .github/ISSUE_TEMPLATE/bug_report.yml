@@ -1,0 +1,36 @@
+name: Bug report
+description: Something does not work as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect and what happened instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [Android, iOS]
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS version
+      placeholder: "e.g. Xiaomi 13, HyperOS, Android 16"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: "e.g. 0.1.0 (see the Releases page)"
+  - type: textarea
+    id: devlog
+    attributes:
+      label: Dev Log
+      description: "Settings → Dev Log. Please check it for apps you do not want to share first."
+      render: text

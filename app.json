@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Focus",
+    "slug": "focus",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "cz.praut.focus",
+      "infoPlist": {
+        "NSFamilyControlsUsageDescription": "Aplikace potřebuje Screen Time pro blokování rušivých aplikací."
+      },
+      "entitlements": {
+        "com.apple.developer.family-controls": true
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "cz.praut.focus",
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-dev-client"
+    ],
+    "description": "Gamified focus app"
+  }
+}

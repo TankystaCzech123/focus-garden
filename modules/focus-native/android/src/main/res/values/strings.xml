@@ -1,0 +1,3 @@
+<resources>
+  <string name="focus_accessibility_description">Hlídá, která aplikace je v popředí, a ve focus módu vrací nepovolené aplikace zpět. Nečte žádný obsah obrazovky.</string>
+</resources>

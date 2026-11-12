@@ -1,0 +1,49 @@
+{
+  "name": "focus-garden",
+  "version": "0.0.0",
+  "description": "Gamified focus app for Android and iOS: lock your phone to a few apps, keep your streak and grow a garden.",
+  "license": "MIT",
+  "private": true,
+  "main": "index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TankystaCzech123/focus-garden.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TankystaCzech123/focus-garden/issues"
+  },
+  "homepage": "https://github.com/TankystaCzech123/focus-garden#readme",
+  "keywords": [
+    "focus",
+    "digital-wellbeing",
+    "expo",
+    "react-native",
+    "android",
+    "ios",
+    "gamification",
+    "streak"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios --device",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^3.1.1",
+    "expo": "~58.0.23",
+    "expo-dev-client": "~58.0.18",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-native": "0.88.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  }
+}
