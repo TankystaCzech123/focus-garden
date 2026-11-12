@@ -49,3 +49,6 @@ modules/*/android/.gradle/
 local.properties
 .gradle/
 build/
+
+# local clone of the private developer data repo (never commit)
+/dev-data/

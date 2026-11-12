@@ -73,6 +73,10 @@ public class FocusNativeModule: Module {
     Function("dndGranted") { () -> Bool in true }
     AsyncFunction("openDndSettings") { }
 
+    Function("getDeviceInfo") { () -> [String: String] in
+      ["model": "iOS", "android": ""]
+    }
+
     Function("getVersion") { () -> String in
       Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }

@@ -251,6 +251,8 @@ export default function App() {
               updateError={updateError}
               onCheckUpdate={() => { void runCheck(true); }}
               onInstallUpdate={() => { void installUpdate(); }}
+              stats={stats}
+              game={game}
             />
           )}
         </View>
