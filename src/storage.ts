@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearBackup, ensureBackup, loadBackup } from './devBackup';
 import { Game, Stats, emptyGame, emptyStats, dayKey } from './rules';
 
 export const MAX_APPS = 5;
@@ -63,6 +64,13 @@ export async function endSession(now: number, credit = true): Promise<Stats> {
 export type Dev = { unlocked: boolean; offsetDays: number };
 export const loadDev = () => getJson<Dev>('focus.dev', { unlocked: false, offsetDays: 0 });
 export const saveDev = (d: Dev) => setJson('focus.dev', d);
+
+// safety copy of the real data while developer mode is on
+export const devBackup = {
+  load: () => loadBackup(AsyncStorage),
+  ensure: (stats: Stats, game: Game, now: number) => ensureBackup(AsyncStorage, stats, game, now),
+  clear: () => clearBackup(AsyncStorage),
+};
 
 // game (coins, ice cubes, garden)
 export const loadGame = () => getJson<Game>('focus.game', emptyGame());

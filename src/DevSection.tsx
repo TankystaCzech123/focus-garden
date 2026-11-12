@@ -8,6 +8,8 @@ export type DevActions = {
   unlocked: boolean;
   offsetDays: number;
   today: string; // formatted app date
+  backupAt: number | null; // when the real data was saved aside
+  onRestore: () => void;
   onUnlock: () => void;
   onLock: () => void;
   onShift: (days: number | 'reset') => void;
@@ -75,6 +77,11 @@ export default function DevSection(p: DevActions) {
   return (
     <View style={s.box}>
       <Text style={s.title}>🔓 Vývojářský režim</Text>
+      <Text style={s.hint}>
+        {p.backupAt
+          ? `🛡️ Tvoje skutečná data jsou uložená stranou (${new Date(p.backupAt).toLocaleString('cs-CZ')}). Úpravy a reset se týkají jen testovací kopie.`
+          : 'Záloha skutečných dat zatím není.'}
+      </Text>
       <Text style={s.hint}>Dnes je v aplikaci {p.today}{p.offsetDays ? ` (${p.offsetDays > 0 ? '+' : ''}${p.offsetDays} dní)` : ''}.</Text>
 
       <Chips label="Čas (skip dnů)" items={[['−1 den', () => p.onShift(-1)], ['+1 den', () => p.onShift(1)], ['+7 dní', () => p.onShift(7)], ['Reset', () => p.onShift('reset')]]} />
@@ -94,7 +101,8 @@ export default function DevSection(p: DevActions) {
       </View>
 
       <Chips label="Akce" items={[['Splnit dnešek', p.completeToday], ['Dorůst rostliny', p.growAll], ['Vyprázdnit zahrádku', p.clearGarden], ['Ukázat oslavu', p.celebrate]]} />
-      <Chunky title="Resetovat všechna data" onPress={p.resetAll} color={c.red} shade={c.redDark} style={{ marginTop: 14 }} />
+      <Chunky title="Vrátit původní data" onPress={p.onRestore} color={c.blue} shade={c.blueDark} style={{ marginTop: 14 }} />
+      <Chunky title="Resetovat testovací data" onPress={p.resetAll} color={c.red} shade={c.redDark} style={{ marginTop: 10 }} />
       <Chunky title="Zamknout" onPress={p.onLock} color={c.disabled} shade={c.disabledDark} textColor={c.text} style={{ marginTop: 10 }} />
     </View>
   );

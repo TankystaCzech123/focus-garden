@@ -9,6 +9,14 @@ The repo contains only the SHA-256 hash of the code (`src/devcode.ts`), never th
 
 > This is a convenience lock, not a security boundary. The app is open source and local, so anyone can change their own data or build their own APK. The code just keeps the menu away from normal users.
 
+## Your real data is protected
+When you unlock developer mode, the current statistics, coins, ice cubes and garden are saved aside (`src/devBackup.ts`). The first backup is never overwritten, not by unlocking again and not by restarting the app, so test data can never replace it. Everything you change afterwards (including *Resetovat testovací data*) only touches the working copy.
+
+- **Vrátit původní data** puts the saved data back and resets the clock shift; developer mode stays on.
+- **Zamknout** asks what to do: *Vrátit původní data* (restores and deletes the backup) or *Ponechat testovací* (keeps the test data and deletes the backup, so the real data are gone).
+- Real focus sessions you run while developer mode is on count towards the working copy and are lost when you restore. Lock developer mode before using the app for real.
+- If developer mode was already unlocked before this safety copy existed, the backup is made from the data as they are at the next app start.
+
 ## What the panel does
 | Control | Effect |
 | --- | --- |
@@ -20,10 +28,11 @@ The repo contains only the SHA-256 hash of the code (`src/devcode.ts`), never th
 | Splnit dnešek | Marks today done like a finished focus: rewards, garden grows, celebration. |
 | Dorůst rostliny / Vyprázdnit zahrádku | Grow all plants / empty all plots. |
 | Ukázat oslavu | Shows the streak celebration screen. |
-| Resetovat všechna data | Clears stats, coins, ice cubes and garden after a confirmation. |
+| Vrátit původní data | Restores the saved real data (see above). |
+| Resetovat testovací data | Clears stats, coins, ice cubes and garden of the working copy after a confirmation. The real data stay in the backup. |
 
 All operations are pure functions in `src/dev.ts` with tests in `tests/dev.test.ts`.
 
 ## Notes
-- Shifting the clock backwards leaves "future" days in the history; they do not count for the streak. Use *Resetovat všechna data* for a clean start.
+- Shifting the clock backwards leaves "future" days in the history; they do not count for the streak. Use *Vrátit původní data* or *Resetovat testovací data* for a clean start.
 - The earlier GitHub sign-in sandbox was removed. The private repo `focus-garden-devdata` and the GitHub App `Focus Garden Sandbox` are no longer used; delete them on GitHub if you want (repo: Settings → Danger zone → Delete; app: github.com/settings/apps → Advanced → Delete).

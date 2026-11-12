@@ -19,7 +19,7 @@ import {
 } from './src/rules';
 import {
   Dev, Settings, dndAsked, endSession, loadAllowed, loadGame, loadSettings, loadStats, saveAllowed, saveGame, saveSettings,
-  saveStats, setDndAsked, startSession, loadDev, saveDev,
+  saveStats, setDndAsked, startSession, loadDev, saveDev, devBackup,
 } from './src/storage';
 import { ThemeProvider, dark, light } from './src/theme';
 import { UpdateInfo, checkForUpdate } from './src/update';
@@ -47,6 +47,7 @@ export default function App() {
   const [game, setGame] = useState<Game>(emptyGame());
   const [settings, setSettings] = useState<Settings>({ mode: 'system', dnd: true, autoUpdate: true, notified: '', nickname: 'Zahradník' });
   const [dev, setDev] = useState<Dev>({ unlocked: false, offsetDays: 0 });
+  const [backupAt, setBackupAt] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>('home');
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState('');
@@ -99,6 +100,8 @@ export default function App() {
       const settled = await settleFreezes(st, await loadGame());
       setStats(settled.st);
       setGame(settled.g);
+      if (d.unlocked) setBackupAt((await devBackup.ensure(settled.st, settled.g, clockNow())).savedAt);
+      else await devBackup.clear(); // locked = the working data is the real data; a leftover backup would be stale
       setReady(true);
 
       // Silent update check on start (Android only, can be turned off in Settings).
@@ -194,11 +197,62 @@ export default function App() {
       setOffsetDays(next.offsetDays);
       await saveDev(next);
       setDev(next);
-      const settled = await settleFreezes(stats, game);
+      const settled = await settleFreezes(await loadStats(), await loadGame()); // fresh copies, not the render closure
       setStats(settled.st);
       setGame(settled.g);
     });
-  const devSetUnlocked = (unlocked: boolean) => run(async () => { const n = { ...dev, unlocked }; await saveDev(n); setDev(n); });
+  const devUnlock = () =>
+    run(async () => {
+      // Real data is saved aside first; everything in developer mode only touches the working copy.
+      const b = await devBackup.ensure(stats, game, clockNow());
+      setBackupAt(b.savedAt);
+      const n = { ...dev, unlocked: true };
+      await saveDev(n);
+      setDev(n);
+    });
+  /** Puts the saved real data back (and resets the time shift). `leave` also locks developer mode. */
+  const devRestore = async (leave: boolean) => {
+    if (active) return Alert.alert('Focus běží', 'Původní data jdou vrátit, až focus skončí.');
+    const b = await devBackup.load();
+    if (!b) return Alert.alert('Žádná záloha', 'Záloha skutečných dat nebyla nalezena, nic se nezměnilo.');
+    setStats(await saveStats(b.stats));
+    setGame(await saveGame(b.game));
+    setOffsetDays(0);
+    const n: Dev = { unlocked: !leave, offsetDays: 0 };
+    await saveDev(n);
+    setDev(n);
+    if (leave) { await devBackup.clear(); setBackupAt(null); }
+  };
+  const devLock = () =>
+    Alert.alert('Zamknout vývojářský režim', 'Doporučeno: vrátit původní data. „Ponechat testovací“ nenávratně smaže tvoje skutečná data a zůstanou jen ta testovací.', [
+      { text: 'Zrušit', style: 'cancel' },
+      {
+        text: 'Ponechat testovací',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Opravdu smazat skutečná data?', 'Záloha tvých skutečných dat se smaže a nepůjde vrátit.', [
+            { text: 'Zrušit', style: 'cancel' },
+            {
+              text: 'Smazat zálohu',
+              style: 'destructive',
+              onPress: () => run(async () => {
+                await devBackup.clear();
+                setBackupAt(null);
+                setOffsetDays(0);
+                const n: Dev = { unlocked: false, offsetDays: 0 };
+                await saveDev(n);
+                setDev(n);
+              }),
+            },
+          ]),
+      },
+      { text: 'Vrátit původní data', onPress: () => run(() => devRestore(true)) },
+    ]);
+  const devRestoreKeepOpen = () =>
+    Alert.alert('Vrátit původní data?', 'Testovací změny se zahodí, vývojářský režim zůstane zapnutý.', [
+      { text: 'Zrušit', style: 'cancel' },
+      { text: 'Vrátit', onPress: () => run(() => devRestore(false)) },
+    ]);
   const devCompleteToday = () =>
     run(async () => {
       const t = clockNow();
@@ -208,7 +262,7 @@ export default function App() {
       await grantReward(after, t);
     });
   const devReset = () =>
-    Alert.alert('Resetovat všechna data?', 'Smaže statistiky, mince, kostky i zahrádku. Nastavení a vybrané aplikace zůstanou.', [
+    Alert.alert('Resetovat testovací data?', 'Smaže testovací statistiky, mince, kostky i zahrádku. Tvoje skutečná data jsou uložená stranou a zůstanou.', [
       { text: 'Zrušit', style: 'cancel' },
       { text: 'Resetovat', style: 'destructive', onPress: () => run(async () => { setStats(await saveStats(emptyStats())); setGame(await saveGame(emptyGame())); }) },
     ]);
@@ -301,8 +355,10 @@ export default function App() {
                   unlocked={dev.unlocked}
                   offsetDays={dev.offsetDays}
                   today={new Date(now).toLocaleDateString('cs-CZ')}
-                  onUnlock={() => devSetUnlocked(true)}
-                  onLock={() => devSetUnlocked(false)}
+                  backupAt={backupAt}
+                  onRestore={devRestoreKeepOpen}
+                  onUnlock={devUnlock}
+                  onLock={devLock}
                   onShift={devShift}
                   coins={(d) => devGame((g) => addCoins(g, d))}
                   cubes={(d) => devGame((g) => addCubes(g, d))}
