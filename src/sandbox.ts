@@ -3,7 +3,7 @@
 
 export const DATA_REPO = 'TankystaCzech123/focus-garden-devdata';
 /** Public client ID of the GitHub App (not a secret). Empty until the app is registered, see docs/SANDBOX.md. */
-export const CLIENT_ID = '';
+export const CLIENT_ID = 'Iv23liULW1FNcKbmankc';
 
 const HOSTS = ['github.com', 'api.github.com'];
 /** Throws unless the URL is https and on the GitHub allowlist. */
