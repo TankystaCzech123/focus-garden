@@ -7,6 +7,7 @@ type Props = {
   active: boolean;
   tiles: AppInfo[];
   today: number;
+  goal: number;
   streakDays: number;
   cubes: number;
   coins: number;
@@ -21,13 +22,17 @@ const days = (n: number) => (n === 1 ? 'den' : n >= 2 && n <= 4 ? 'dny' : 'dní'
 export default function FocusScreen(p: Props) {
   const c = useTheme();
   const s = useStyles(makeS);
+  const done = p.today >= p.goal;
   const hint = p.active
     ? 'Soustřeď se! Telefon je zamčený na tvoje aplikace.'
-    : p.today > 0
+    : done
       ? 'Dnešní série je v suchu. Dáš ještě jedno kolo?'
-      : p.streakDays > 0
-        ? `Nenech ${p.streakDays} ${days(p.streakDays)} série zahořet. Zapni focus!`
-        : 'Zapni focus a začni svou sérii!';
+      : p.today > 0
+        ? `Dnes ${p.today} z ${p.goal} min. Ještě to není hotové!`
+        : p.streakDays > 0
+          ? `Nenech ${p.streakDays} ${days(p.streakDays)} série zahořet. Zapni focus!`
+          : 'Zapni focus a začni svou sérii!';
+  const progress = Math.min(1, p.goal > 0 ? p.today / p.goal : 0);
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={s.content}>
@@ -35,7 +40,11 @@ export default function FocusScreen(p: Props) {
         <Text style={[s.chip, { color: p.streakDays ? c.orange : c.faint }]}>🔥 {p.streakDays}</Text>
         <Text style={[s.chip, { color: c.ice }]}>❄️ {p.cubes}</Text>
         <Text style={[s.chip, { color: c.yellow }]}>🪙 {p.coins}</Text>
-        <Text style={[s.chip, { color: c.blue }]}>⏱️ {p.today}</Text>
+        <Text style={[s.chip, { color: c.blue }]}>⏱️ {p.today}/{p.goal}</Text>
+      </View>
+
+      <View style={s.progressTrack}>
+        <View style={[s.progressFill, { width: `${Math.round(progress * 100)}%` }, done && { backgroundColor: c.green }]} />
       </View>
 
       <View style={s.week}>
@@ -90,6 +99,8 @@ const makeS = (c: Palette) =>
     content: { flexGrow: 1, paddingTop: 64, paddingBottom: 20, paddingHorizontal: 20 },
     top: { flexDirection: 'row', justifyContent: 'space-between' },
     chip: { fontSize: 18, fontWeight: '800' },
+    progressTrack: { height: 12, borderRadius: 6, borderWidth: 2, borderColor: c.border, backgroundColor: c.card, marginTop: 12, overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: 4, backgroundColor: c.orange },
     week: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: c.card, borderRadius: 18, borderWidth: 2, borderColor: c.border, paddingVertical: 14, paddingHorizontal: 12, marginTop: 22 },
     day: { alignItems: 'center', gap: 8 },
     dayLabel: { color: c.dim, fontSize: 12, fontWeight: '700' },

@@ -13,6 +13,11 @@ export type Game = { coins: number; cubes: number; plots: (Plot | null)[] };
 export type Item = { id: string; name: string; price: number; days: number; stages: string[] };
 
 export const PLOTS = 12;
+// Daily goal (minutes of focus a day needs to count). Chosen in Settings.
+export const DAY_GOALS = [5, 10, 20] as const;
+export type Goal = (typeof DAY_GOALS)[number];
+export const DEFAULT_GOAL: Goal = 5;
+
 export const emptyStats = (): Stats => ({ days: {}, frozen: {}, startedAt: null, sessions: 0, bestSession: 0, xpBonus: 0 });
 export const emptyGame = (): Game => ({ coins: 0, cubes: 0, plots: Array(PLOTS).fill(null) });
 
@@ -42,18 +47,19 @@ export const dayAt = (now: number, offset: number) => {
   const d = new Date(now);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset, 12).getTime();
 };
-const isDone = (s: Stats, t: number) => (s.days[dayKey(t)] ?? 0) > 0;
+/** A day counts only once at least `goal` minutes of focus were reached. */
+export const dayCompleted = (s: Stats, t: number, goal: number = DEFAULT_GOAL) => (s.days[dayKey(t)] ?? 0) >= goal;
 const isFrozen = (s: Stats, t: number) => !!s.frozen[dayKey(t)];
 
 export const todayMinutes = (s: Stats, now: number) => s.days[dayKey(now)] ?? 0;
 
 /** Consecutive focus days; frozen days keep the chain but do not add to it. */
-export function streak(s: Stats, now: number): number {
-  let off = isDone(s, now) ? 0 : -1;
+export function streak(s: Stats, now: number, goal: number = DEFAULT_GOAL): number {
+  let off = dayCompleted(s, now, goal) ? 0 : -1;
   let n = 0;
   for (let i = 0; i < 5000; i++, off--) {
     const t = dayAt(now, off);
-    if (isDone(s, t)) n++;
+    if (dayCompleted(s, t, goal)) n++;
     else if (!isFrozen(s, t)) break;
   }
   return n;
@@ -63,12 +69,12 @@ export function streak(s: Stats, now: number): number {
  * Spends one ice cube per missed day (yesterday and back to the last focus/frozen day).
  * All or nothing: if there are not enough cubes the streak simply breaks and no cube is spent.
  */
-export function applyFreezes(s: Stats, cubes: number, now: number) {
+export function applyFreezes(s: Stats, cubes: number, now: number, goal: number = DEFAULT_GOAL) {
   let gap = 0;
   let anchored = false;
   for (let off = -1; off >= -60; off--) {
     const t = dayAt(now, off);
-    if (isDone(s, t) || isFrozen(s, t)) { anchored = true; break; }
+    if (dayCompleted(s, t, goal) || isFrozen(s, t)) { anchored = true; break; }
     gap++;
   }
   if (!anchored || gap === 0 || cubes < gap) return { stats: s, cubes, used: 0 };
@@ -79,11 +85,11 @@ export function applyFreezes(s: Stats, cubes: number, now: number) {
 
 const WEEK = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
 /** Current week Monday..Sunday. */
-export function weekDays(s: Stats, now: number) {
+export function weekDays(s: Stats, now: number, goal: number = DEFAULT_GOAL) {
   const dow = (new Date(now).getDay() + 6) % 7;
   return WEEK.map((label, i) => {
     const t = dayAt(now, i - dow);
-    return { label, done: isDone(s, t), frozen: isFrozen(s, t), today: dayKey(t) === dayKey(now) };
+    return { label, done: dayCompleted(s, t, goal), frozen: isFrozen(s, t), today: dayKey(t) === dayKey(now) };
   });
 }
 

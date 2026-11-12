@@ -3,7 +3,7 @@
 All rules live in [`src/rules.ts`](../src/rules.ts) as pure functions and are covered by `tests/rules.test.ts`.
 
 ## Focus day and streak
-- A day is **completed** when you have at least **1 minute** of focus (summed over sessions, credited to the day the session ends).
+- A day is **completed** when the **daily goal** is reached — 5, 10 or 20 minutes of focus, chosen in Settings (summed over sessions, credited to the day the session ends). Streak, coins and garden growth only count a goal-reached day.
 - The **streak** is the number of consecutive completed days. If today is not completed yet, the streak is counted up to yesterday.
 - **Frozen days** (see ice cubes) keep the chain alive but do not increase the streak.
 
@@ -28,9 +28,6 @@ All rules live in [`src/rules.ts`](../src/rules.ts) as pure functions and are co
 | Rose 🌹 | 25 | 4 days |
 | Tree 🌳 | 50 | 6 days |
 | Mushroom 🍄, Bee 🐝, Butterfly 🦋, Rabbit 🐇 | 10 / 30 / 30 / 40 | decorations |
-
-## Known trade-offs
-- One minute is enough to complete a day, so coins can be farmed. A configurable daily goal is on the roadmap.
 
 ## Profile
 

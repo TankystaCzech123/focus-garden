@@ -1,5 +1,5 @@
 // Developer-mode operations. Pure functions on Stats/Game so they can be tested; never negative values.
-import { dayAt, dayKey, itemById } from './rules.ts';
+import { DEFAULT_GOAL, dayAt, dayKey, itemById } from './rules.ts';
 import type { Game, Stats } from './rules.ts';
 
 export const addCoins = (g: Game, d: number): Game => ({ ...g, coins: Math.max(0, g.coins + d) });
@@ -18,14 +18,15 @@ export function addMinutes(s: Stats, t: number, d: number): Stats {
 
 /**
  * Makes the current streak exactly `n` days, ending yesterday (today stays untouched, so a focus today still
- * earns the reward). Marks the last n days as done (1 minute if empty) and removes all older history.
+ * earns the reward). Marks the last n days as done (the default daily goal's minutes if empty) and removes all
+ * older history.
  */
 export function setStreak(s: Stats, n: number, now: number): Stats {
   const days = { ...s.days };
   const frozen = { ...s.frozen };
   for (let i = 1; i <= n; i++) {
     const k = dayKey(dayAt(now, -i));
-    days[k] = Math.max(days[k] ?? 0, 1);
+    days[k] = Math.max(days[k] ?? 0, DEFAULT_GOAL);
     delete frozen[k];
   }
   // Cut the chain: drop every older entry, so ice cubes cannot bridge the gap later.
