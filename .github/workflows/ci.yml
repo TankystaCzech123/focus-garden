@@ -40,7 +40,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
       - run: npm ci
       - name: Set versionCode
         run: node -e 'const f="app.json",j=require("./"+f);j.expo.android.versionCode=${{ github.run_number }};require("fs").writeFileSync(f,JSON.stringify(j,null,2)+"\n")'
