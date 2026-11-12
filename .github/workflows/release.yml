@@ -1,39 +1,37 @@
 name: Release
 
-# Every push to main updates (or merges) a release PR. Merging that PR creates the
-# GitHub release + tag and this workflow attaches the built Android APK to it.
+# Every push to main that changes the app builds the APK and publishes a new GitHub release
+# automatically (version 0.1.<run number>), so the in-app "check for updates" button can install it.
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'modules/**'
+      - 'assets/**'
+      - 'App.tsx'
+      - 'index.ts'
+      - 'app.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: write
 
 jobs:
-  release-please:
+  release:
+    name: Build APK and publish release
     runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.rp.outputs.release_created }}
-      tag_name: ${{ steps.rp.outputs.tag_name }}
-    steps:
-      - uses: googleapis/release-please-action@v4
-        id: rp
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  apk:
-    name: Build and attach APK
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -43,16 +41,27 @@ jobs:
           distribution: temurin
           java-version: 17
       - run: npm ci
-      - name: Set versionCode
-        run: node -e 'const f="app.json",j=require("./"+f);j.expo.android.versionCode=${{ github.run_number }};require("fs").writeFileSync(f,JSON.stringify(j,null,2)+"\n")'
+      - run: npm run typecheck
+      - run: npm test
+      - name: Set version
+        id: ver
+        run: |
+          VERSION="0.1.${{ github.run_number }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          node -e 'const f="app.json",j=require("./"+f);j.expo.version=process.argv[1];j.expo.android.versionCode=Number(process.argv[2]);require("fs").writeFileSync(f,JSON.stringify(j,null,2)+"\n")' "$VERSION" "${{ github.run_number }}"
       - run: npx expo prebuild --platform android --no-install
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
-      - name: Upload APK to the release
+      - name: Show signing certificate
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
+          "$APKSIGNER" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | grep -i "SHA-256"
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.release-please.outputs.tag_name }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk "focus-garden-${TAG}-arm64-v8a.apk"
-          gh release upload "$TAG" "focus-garden-${TAG}-arm64-v8a.apk" --clobber
+          cp android/app/build/outputs/apk/release/app-release.apk "focus-garden-v${VERSION}-arm64-v8a.apk"
+          gh release create "v${VERSION}" "focus-garden-v${VERSION}-arm64-v8a.apk" \
+            --target "$GITHUB_SHA" --title "v${VERSION}" --generate-notes

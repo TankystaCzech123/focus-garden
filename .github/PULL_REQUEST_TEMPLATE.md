@@ -10,7 +10,7 @@
 
 ## Checklist
 
-- [ ] PR title follows [Conventional Commits](https://www.conventionalcommits.org/) (it drives releases and the changelog)
+- [ ] PR title follows [Conventional Commits](https://www.conventionalcommits.org/) (keeps release notes readable)
 - [ ] `npm run typecheck` and `npm test` pass
 - [ ] Game logic changes have tests in `tests/`
 - [ ] Docs updated if behaviour changed

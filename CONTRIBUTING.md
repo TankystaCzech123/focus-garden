@@ -28,26 +28,14 @@ See [docs/SETUP.md](docs/SETUP.md) for details. The app uses a custom native mod
 3. Run `npm run typecheck` and `npm test`.
 4. Open a pull request using the template. CI must be green.
 
-## Commit messages – Conventional Commits (required)
+## Commit messages – Conventional Commits
 
-Releases and the changelog are generated automatically from commit messages by
-[release-please](https://github.com/googleapis/release-please), so please use
-[Conventional Commits](https://www.conventionalcommits.org/):
-
-| Prefix | Meaning | Release effect |
-| --- | --- | --- |
-| `feat:` | new feature | minor version |
-| `fix:` | bug fix | patch version |
-| `feat!:` / `BREAKING CHANGE:` | incompatible change | major (minor while < 1.0) |
-| `docs:`, `chore:`, `test:`, `refactor:`, `ci:` | no user-visible change | no release |
-
-Squash-merged PR titles must follow the same format.
+Please use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`, `ci:`). They keep the history readable and the generated release notes tidy. Squash-merged PR titles should follow the same format.
 
 ## How releases work
 
-When commits with `feat:`/`fix:` land on `main`, release-please opens a "chore: release x.y.z" pull request with the
-changelog. Merging it tags the release, publishes it on GitHub and the workflow attaches the built Android APK.
-Maintainers only need to merge that PR.
+Every push to `main` that changes the app (`src/`, `modules/`, `assets/`, `App.tsx`, `app.json`, `package*.json`) automatically builds the Android APK and publishes a GitHub release `v0.1.<run number>` with generated notes. Nobody has to merge anything. The in-app **Settings → Check for updates** button installs the newest release. Docs-only pushes do not create a release.
+
 
 ## Code style
 
@@ -59,3 +47,4 @@ Maintainers only need to merge that PR.
 ## Code of Conduct
 
 By participating you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+

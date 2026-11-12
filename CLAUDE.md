@@ -27,9 +27,9 @@ The main conversation is the **orchestrator**: it plans, delegates, verifies and
 5. Conventional Commit, pushed to `origin main` (standing instruction), CI green.
 
 ## Hard rules
-- Conventional Commits (`feat:`, `fix:` ...): release-please generates releases. Never edit `CHANGELOG.md`, `.release-please-manifest.json`, version numbers or lockfiles by hand.
+- Conventional Commits (`feat:`, `fix:` ...). Every push to `main` that changes the app is released automatically by `.github/workflows/release.yml` (`v0.1.<run number>` + APK); the version is set in CI, so never edit version numbers or lockfiles by hand.
 - No secrets, keystores, passwords or personal data (names, e-mail, local paths) in the repo, commits or logs. Commits use the GitHub noreply identity.
-- Outward actions (publishing a release, merging the release PR, making things public, sending data to services) only when the user asks.
+- Outward actions (making things public, sending data to services, force-pushes) only when the user asks. Automatic releases from `main` are the user's standing decision ("every update is a new version").
 - Never reset the phone, clear app data or uninstall without explicit consent.
 - Android focus mode uses an accessibility service that reads only the foreground package name. Xiaomi Game Turbo packages must stay ignored (docs/ARCHITECTURE.md).
 - Never weaken tests or skip them to get green. A flaky test is a bug.
