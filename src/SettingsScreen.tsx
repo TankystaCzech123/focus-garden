@@ -1,7 +1,6 @@
+import type { ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Chunky from './Chunky';
-import SandboxSection from './SandboxSection';
-import type { Game, Stats } from './rules';
 import type { Settings } from './storage';
 import { Palette, useStyles, useTheme } from './theme';
 import type { UpdateInfo } from './update';
@@ -18,8 +17,7 @@ type Props = {
   updateError: string;
   onCheckUpdate: () => void;
   onInstallUpdate: () => void;
-  stats: Stats;
-  game: Game;
+  devSlot?: ReactNode;
 };
 
 const MODES: { id: Settings['mode']; label: string }[] = [
@@ -110,7 +108,7 @@ export default function SettingsScreen(p: Props) {
         <Text style={s.rowText}>Dev Log</Text>
         <Text style={s.hint}>›</Text>
       </Pressable>
-      <SandboxSection stats={p.stats} game={p.game} settings={settings} version={p.version} />
+      {p.devSlot}
     </ScrollView>
   );
 }

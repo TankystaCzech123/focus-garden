@@ -18,6 +18,3 @@ if (/\.(jks|keystore|p12|pem)$/i.test(name) || /^\.env(\..+)?$/.test(name)) {
   denyPreToolUse(`${name} may hold secrets or signing keys and must not be created or edited by the agent.`);
 }
 
-if (/^dev-data(\/|$)/.test(rel) || /(^|\/)inbox\/.+\.json$/.test(rel)) {
-  denyPreToolUse(`${rel} belongs to the private developer data repo (dev-data/). Never edit it from this repo and never copy its contents into public files.`);
-}

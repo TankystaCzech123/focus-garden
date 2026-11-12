@@ -3,6 +3,7 @@ import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import Chunky from './Chunky';
+import { now as clockNow } from './clock';
 import { Game, Stats, activity, badges, bestDay, levelInfo, longestStreak, plotEmoji, streak, totalMinutes, xp } from './rules';
 import { Palette, useStyles, useTheme } from './theme';
 
@@ -16,7 +17,7 @@ export default function ProfileScreen({ stats, game, nickname, onNickname }: Pro
   const cardRef = useRef<ComponentRef<typeof View>>(null);
   const [showCard, setShowCard] = useState(false);
 
-  const now = Date.now();
+  const now = clockNow();
   const lv = levelInfo(xp(stats));
   const cur = streak(stats, now);
   const best = longestStreak(stats);

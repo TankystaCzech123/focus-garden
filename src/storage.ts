@@ -59,6 +59,11 @@ export async function endSession(now: number, credit = true): Promise<Stats> {
   return saveStats({ ...s, days, sessions, bestSession, startedAt: null });
 }
 
+// developer mode (unlocked with the secret code, clock shifted by whole days)
+export type Dev = { unlocked: boolean; offsetDays: number };
+export const loadDev = () => getJson<Dev>('focus.dev', { unlocked: false, offsetDays: 0 });
+export const saveDev = (d: Dev) => setJson('focus.dev', d);
+
 // game (coins, ice cubes, garden)
 export const loadGame = () => getJson<Game>('focus.game', emptyGame());
 export const saveGame = (g: Game) => setJson('focus.game', g);

@@ -6,13 +6,14 @@ export type Stats = {
   startedAt: number | null;
   sessions: number; // finished sessions
   bestSession: number; // longest session in minutes
+  xpBonus: number; // developer mode only, 0 for normal users
 };
 export type Plot = { id: string; grown: number };
 export type Game = { coins: number; cubes: number; plots: (Plot | null)[] };
 export type Item = { id: string; name: string; price: number; days: number; stages: string[] };
 
 export const PLOTS = 12;
-export const emptyStats = (): Stats => ({ days: {}, frozen: {}, startedAt: null, sessions: 0, bestSession: 0 });
+export const emptyStats = (): Stats => ({ days: {}, frozen: {}, startedAt: null, sessions: 0, bestSession: 0, xpBonus: 0 });
 export const emptyGame = (): Game => ({ coins: 0, cubes: 0, plots: Array(PLOTS).fill(null) });
 
 /** days = how many focus days until fully grown; 0 = decoration. */
@@ -37,7 +38,7 @@ export const dayKey = (t: number) => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 };
 /** Noon of the day `offset` days from `now` (noon avoids DST edge cases). */
-const at = (now: number, offset: number) => {
+export const dayAt = (now: number, offset: number) => {
   const d = new Date(now);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset, 12).getTime();
 };
@@ -51,7 +52,7 @@ export function streak(s: Stats, now: number): number {
   let off = isDone(s, now) ? 0 : -1;
   let n = 0;
   for (let i = 0; i < 5000; i++, off--) {
-    const t = at(now, off);
+    const t = dayAt(now, off);
     if (isDone(s, t)) n++;
     else if (!isFrozen(s, t)) break;
   }
@@ -66,13 +67,13 @@ export function applyFreezes(s: Stats, cubes: number, now: number) {
   let gap = 0;
   let anchored = false;
   for (let off = -1; off >= -60; off--) {
-    const t = at(now, off);
+    const t = dayAt(now, off);
     if (isDone(s, t) || isFrozen(s, t)) { anchored = true; break; }
     gap++;
   }
   if (!anchored || gap === 0 || cubes < gap) return { stats: s, cubes, used: 0 };
   const frozen = { ...s.frozen };
-  for (let off = -1; off >= -gap; off--) frozen[dayKey(at(now, off))] = true;
+  for (let off = -1; off >= -gap; off--) frozen[dayKey(dayAt(now, off))] = true;
   return { stats: { ...s, frozen }, cubes: cubes - gap, used: gap };
 }
 
@@ -81,7 +82,7 @@ const WEEK = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
 export function weekDays(s: Stats, now: number) {
   const dow = (new Date(now).getDay() + 6) % 7;
   return WEEK.map((label, i) => {
-    const t = at(now, i - dow);
+    const t = dayAt(now, i - dow);
     return { label, done: isDone(s, t), frozen: isFrozen(s, t), today: dayKey(t) === dayKey(now) };
   });
 }
@@ -122,8 +123,8 @@ export function plantItem(g: Game, index: number, itemId: string): Game | null {
 export const totalMinutes = (s: Stats) => Object.values(s.days).reduce((a, b) => a + b, 0);
 export const doneDays = (s: Stats) => Object.values(s.days).filter((m) => m > 0).length;
 
-/** XP = focused minutes + 10 per completed day. */
-export const xp = (s: Stats) => totalMinutes(s) + 10 * doneDays(s);
+/** XP = focused minutes + 10 per completed day (+ developer bonus, never below 0). */
+export const xp = (s: Stats) => Math.max(0, totalMinutes(s) + 10 * doneDays(s) + (s.xpBonus ?? 0));
 
 export const LEVELS = [
   { min: 0, name: 'Semínko', emoji: '🌰' },
@@ -177,7 +178,7 @@ export function activity(s: Stats, now: number, weeks = 12) {
   for (let w = weeks - 1; w >= 0; w--) {
     const col = [];
     for (let d = 0; d < 7; d++) {
-      const t = at(now, -dow - w * 7 + d);
+      const t = dayAt(now, -dow - w * 7 + d);
       col.push({ key: dayKey(t), minutes: t > now && dayKey(t) !== dayKey(now) ? null : s.days[dayKey(t)] ?? 0 });
     }
     cols.push(col);

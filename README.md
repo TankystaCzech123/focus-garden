@@ -20,7 +20,7 @@ shrinks down to just those apps. Keep your daily streak, earn coins and grow a l
 - **Coins 🪙 and garden** – 5 coins per focused day, +15 for every 7-day streak. Buy seeds and decorations and grow your garden.
 - **Updates from GitHub (Android)** – Settings can check this repo's releases, notify you of a new version and install it with one tap (optional, can be turned off).
 - **Profile** – XP and levels, records, a 12-week activity heatmap, badges and a shareable card.
-- **Developer sandbox (Android, opt-in)** – sign in with GitHub and send diagnostics to a private data repo; see [docs/SANDBOX.md](docs/SANDBOX.md).
+- **Developer mode** – a secret code unlocks a panel to skip days, change coins, streak, ice cubes, minutes and XP for testing; see [docs/DEV_MODE.md](docs/DEV_MODE.md).
 - **Light / dark theme**, a built-in **Dev Log** for debugging, and everything stored **locally on your phone**.
 
 Details of the rules are in [docs/GAME_RULES.md](docs/GAME_RULES.md).

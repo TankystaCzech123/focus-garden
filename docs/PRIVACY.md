@@ -13,12 +13,11 @@ Focus Garden is built to be private by design.
 | Query installed launcher apps | Android | Show the list of apps you can allow. |
 | Notification policy access (Do Not Disturb) | Android | Optional. Mute notifications during focus and restore your previous mode afterwards. |
 | Family Controls / Screen Time | iOS | Choose and shield apps through Apple's system picker. Apple does not reveal which apps you picked to the app. |
-| `INTERNET` | Android | Check GitHub for a newer release and download its APK (this repository only; the check can be turned off in Settings), and, for developers who sign in, upload sandbox reports to `api.github.com`. |
+| `INTERNET` | Android | Check GitHub for a newer release and download its APK (this repository only; the check can be turned off in Settings). |
 | `REQUEST_INSTALL_PACKAGES` | Android | Hand the downloaded APK to Android's installer when you tap *Install update*. You must allow it once. |
 | `VIBRATE`, `SYSTEM_ALERT_WINDOW` | Android | Declared by the Expo / React Native framework. |
 
 - **Profile share card** is rendered locally as an image. It is only shared if you choose a target in the system share sheet.
-- **Developer sandbox** (Android, opt-in): after signing in with GitHub, a developer can send a report (Dev Log, device model, stats, game state) to a private repo. It is previewed and confirmed each time, never automatic, and contains no token or nickname. The sign-in token is kept in the Android Keystore. Details: [SANDBOX.md](SANDBOX.md).
-- **Dev Log** is a local text log (last ~200 events) shown inside the app. It leaves the device only if you copy it yourself, for example into a bug report, or if you are a signed-in developer and confirm sending a sandbox report (it is part of the report). It contains package names of apps you opened during focus mode, so review it before sharing.
+- **Dev Log** is a local text log (last ~200 events) shown inside the app. It leaves the device only if you copy it yourself, for example into a bug report. It contains package names of apps you opened during focus mode, so review it before sharing.
 
 Questions or concerns? Open an issue or see [SECURITY.md](../SECURITY.md).

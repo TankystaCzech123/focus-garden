@@ -136,10 +136,6 @@ class FocusNativeModule : Module() {
       )
     }
 
-    Function("getDeviceInfo") {
-      mapOf("model" to "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}", "android" to android.os.Build.VERSION.RELEASE)
-    }
-
     Function("getVersion") {
       context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "0.0.0"
     }

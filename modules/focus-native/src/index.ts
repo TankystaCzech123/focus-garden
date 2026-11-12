@@ -13,7 +13,6 @@ type Native = {
   dndGranted(): boolean;
   openDndSettings(): Promise<void>;
   getVersion(): string;
-  getDeviceInfo(): { model: string; android: string };
   downloadAndInstall(url: string): Promise<'started' | 'needsPermission' | 'unsupported'>;
   getDevLog(): Promise<string>;
   clearDevLog(): Promise<void>;

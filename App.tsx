@@ -4,6 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import Focus, { AppInfo } from './modules/focus-native/src';
 import Celebrate, { Reward } from './src/Celebrate';
 import Chunky from './src/Chunky';
+import { getOffsetDays, now as clockNow, setOffsetDays } from './src/clock';
+import DevSection from './src/DevSection';
+import { addCoins, addCubes, addMinutes, addXp, clearGarden, growAll, setStreak } from './src/dev';
 import DevLogScreen from './src/DevLogScreen';
 import FocusScreen from './src/FocusScreen';
 import GardenScreen from './src/GardenScreen';
@@ -15,8 +18,8 @@ import {
   Game, Stats, applyFreezes, emptyGame, emptyStats, growPlots, plantItem, rewardForStreak, streak, todayMinutes, weekDays,
 } from './src/rules';
 import {
-  Settings, dndAsked, endSession, loadAllowed, loadGame, loadSettings, loadStats, saveAllowed, saveGame, saveSettings,
-  saveStats, setDndAsked, startSession,
+  Dev, Settings, dndAsked, endSession, loadAllowed, loadGame, loadSettings, loadStats, saveAllowed, saveGame, saveSettings,
+  saveStats, setDndAsked, startSession, loadDev, saveDev,
 } from './src/storage';
 import { ThemeProvider, dark, light } from './src/theme';
 import { UpdateInfo, checkForUpdate } from './src/update';
@@ -43,6 +46,7 @@ export default function App() {
   const [stats, setStats] = useState<Stats>(emptyStats());
   const [game, setGame] = useState<Game>(emptyGame());
   const [settings, setSettings] = useState<Settings>({ mode: 'system', dnd: true, autoUpdate: true, notified: '', nickname: 'Zahradník' });
+  const [dev, setDev] = useState<Dev>({ unlocked: false, offsetDays: 0 });
   const [tab, setTab] = useState<Tab>('home');
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState('');
@@ -56,8 +60,32 @@ export default function App() {
   const refreshLog = () => Focus.getDevLog().then(setLog).catch(() => setLog('(chyba čtení logu)'));
   const isDark = settings.mode === 'dark' || (settings.mode === 'system' && systemScheme === 'dark');
 
+  /** Ice cubes save the streak for missed days (runs on app start and after a developer time shift). */
+  const settleFreezes = async (st: Stats, g: Game) => {
+    const f = applyFreezes(st, g.cubes, clockNow());
+    if (f.used > 0) {
+      st = await saveStats(f.stats);
+      g = await saveGame({ ...g, cubes: f.cubes });
+      Alert.alert('❄️ Ledová kostka', `Zachránila tvoji sérii (${f.used} ${f.used === 1 ? 'den' : 'dny/dní'}).`);
+    }
+    return { st, g };
+  };
+
+  /** First completed focus of the day: rewards, the garden grows a day, celebration. */
+  const grantReward = async (after: Stats, t: number) => {
+    const n = streak(after, t);
+    const r = rewardForStreak(n);
+    const cur = await loadGame(); // fresh copy, not the render closure
+    const g = await saveGame({ ...cur, coins: cur.coins + r.coins, cubes: cur.cubes + r.cubes, plots: growPlots(cur.plots) });
+    setGame(g);
+    setReward({ streak: n, ...r });
+  };
+
   useEffect(() => {
     run(async () => {
+      const d = await loadDev();
+      setOffsetDays(d.offsetDays);
+      setDev(d);
       setSettings(await loadSettings());
       setAllowed(await loadAllowed());
       if (!Focus.needsPicker()) setApps(await Focus.getInstalledApps());
@@ -66,18 +94,11 @@ export default function App() {
       const isOn = Focus.isActive();
       setActive(isOn);
       let st = await loadStats();
-      if (!isOn && st.startedAt) st = await endSession(Date.now(), false);
+      if (!isOn && st.startedAt) st = await endSession(clockNow(), false);
 
-      // Ice cubes save the streak for missed days.
-      let g = await loadGame();
-      const f = applyFreezes(st, g.cubes, Date.now());
-      if (f.used > 0) {
-        st = await saveStats(f.stats);
-        g = await saveGame({ ...g, cubes: f.cubes });
-        Alert.alert('❄️ Ledová kostka', `Zachránila tvoji sérii (${f.used} ${f.used === 1 ? 'den' : 'dny/dní'}).`);
-      }
-      setStats(st);
-      setGame(g);
+      const settled = await settleFreezes(st, await loadGame());
+      setStats(settled.st);
+      setGame(settled.g);
       setReady(true);
 
       // Silent update check on start (Android only, can be turned off in Settings).
@@ -137,18 +158,13 @@ export default function App() {
     run(async () => {
       if (active) {
         await Focus.stop();
-        const t = Date.now();
+        const t = clockNow();
         const wasDone = todayMinutes(stats, t) > 0;
         const after = await endSession(t);
         setStats(after);
         setActive(false);
         if (!wasDone && todayMinutes(after, t) > 0) {
-          // first completed focus today: rewards + the garden grows a day
-          const n = streak(after, t);
-          const r = rewardForStreak(n);
-          const g = await saveGame({ ...game, coins: game.coins + r.coins, cubes: game.cubes + r.cubes, plots: growPlots(game.plots) });
-          setGame(g);
-          setReward({ streak: n, ...r });
+          await grantReward(after, t);
         }
         return;
       }
@@ -164,9 +180,38 @@ export default function App() {
         Alert.alert('Zapni službu Focus', 'V Usnadnění zapni službu „Focus“, vrať se sem a znovu stiskni START.');
         return;
       }
-      setStats(await startSession(Date.now()));
+      setStats(await startSession(clockNow()));
       setActive(true);
     });
+
+  // ---- developer mode ----
+  const devStats = (fn: (s: Stats) => Stats) => run(async () => setStats(await saveStats(fn(stats))));
+  const devGame = (fn: (g: Game) => Game) => run(async () => setGame(await saveGame(fn(game))));
+  const devShift = (days: number | 'reset') =>
+    run(async () => {
+      if (active) return Alert.alert('Focus běží', 'Čas jde posunout, až focus skončí.');
+      const next: Dev = { ...dev, offsetDays: days === 'reset' ? 0 : getOffsetDays() + days };
+      setOffsetDays(next.offsetDays);
+      await saveDev(next);
+      setDev(next);
+      const settled = await settleFreezes(stats, game);
+      setStats(settled.st);
+      setGame(settled.g);
+    });
+  const devSetUnlocked = (unlocked: boolean) => run(async () => { const n = { ...dev, unlocked }; await saveDev(n); setDev(n); });
+  const devCompleteToday = () =>
+    run(async () => {
+      const t = clockNow();
+      if (todayMinutes(stats, t) > 0) return Alert.alert('Dnešek už je splněný');
+      const after = await saveStats(addMinutes(stats, t, 1));
+      setStats(after);
+      await grantReward(after, t);
+    });
+  const devReset = () =>
+    Alert.alert('Resetovat všechna data?', 'Smaže statistiky, mince, kostky i zahrádku. Nastavení a vybrané aplikace zůstanou.', [
+      { text: 'Zrušit', style: 'cancel' },
+      { text: 'Resetovat', style: 'destructive', onPress: () => run(async () => { setStats(await saveStats(emptyStats())); setGame(await saveGame(emptyGame())); }) },
+    ]);
 
   const body = () => {
     if (!ready) return <View style={s.blank} />;
@@ -205,7 +250,7 @@ export default function App() {
       return <SetupScreen apps={apps} onSave={(ids) => run(async () => { await saveAllowed(ids); setAllowed(ids); })} />;
     }
 
-    const now = Date.now();
+    const now = clockNow();
     return (
       <View style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
@@ -251,8 +296,26 @@ export default function App() {
               updateError={updateError}
               onCheckUpdate={() => { void runCheck(true); }}
               onInstallUpdate={() => { void installUpdate(); }}
-              stats={stats}
-              game={game}
+              devSlot={
+                <DevSection
+                  unlocked={dev.unlocked}
+                  offsetDays={dev.offsetDays}
+                  today={new Date(now).toLocaleDateString('cs-CZ')}
+                  onUnlock={() => devSetUnlocked(true)}
+                  onLock={() => devSetUnlocked(false)}
+                  onShift={devShift}
+                  coins={(d) => devGame((g) => addCoins(g, d))}
+                  cubes={(d) => devGame((g) => addCubes(g, d))}
+                  minutes={(d) => devStats((s) => addMinutes(s, now, d))}
+                  xp={(d) => devStats((s) => addXp(s, d))}
+                  streak={(n) => devStats((s) => setStreak(s, n, now))}
+                  completeToday={devCompleteToday}
+                  growAll={() => devGame(growAll)}
+                  clearGarden={() => devGame(clearGarden)}
+                  celebrate={() => setReward({ streak: streak(stats, now), coins: 5, cubes: 0 })}
+                  resetAll={devReset}
+                />
+              }
             />
           )}
         </View>
