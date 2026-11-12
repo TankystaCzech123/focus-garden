@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
 import Focus from '../modules/focus-native/src';
 import Chunky from './Chunky';
@@ -33,7 +34,7 @@ export default function SandboxSection({ stats, game, settings, version }: Props
   const verify = async (t: string) => {
     try {
       const a = await checkAccess(t);
-      if (!a.canPush) return signOut(`Účet ${a.login} nemá přístup do sandboxu. Požádej vlastníka o přidání do ${DATA_REPO}.`);
+      if (!a.canPush) return signOut(`Účet ${a.login} nemá přístup do sandboxu: ${a.reason ?? 'neznámý důvod'}. Požádej vlastníka o přidání do ${DATA_REPO}.`);
       setToken(t); setAccess(a); setMsg('');
     } catch (e) {
       if (String(e).includes('unauthorized')) await signOut('Přihlášení vypršelo, přihlas se znovu.');
@@ -123,8 +124,8 @@ export default function SandboxSection({ stats, game, settings, version }: Props
             </Text>
             {!!code && (
               <>
-                <Text style={s.code}>{code}</Text>
-                <Text style={s.hint}>Zadej tento kód na github.com/login/device a potvrď.</Text>
+                <Text style={s.code} selectable onPress={() => { void Clipboard.setStringAsync(code); setMsg('Kód zkopírován.'); }}>{code}</Text>
+                <Text style={s.hint}>Klepnutím kód zkopíruješ. Zadej ho na github.com/login/device a potvrď.</Text>
               </>
             )}
             <Chunky title={busy ? 'Čekám na GitHub…' : 'Přihlásit přes GitHub'} disabled={busy || !CLIENT_ID} onPress={() => void login()} style={{ marginTop: 10 }} />

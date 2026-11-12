@@ -60,7 +60,7 @@ export async function pollOnce(dc: DeviceCode, interval: number, clientId = CLIE
 
 // ---- access check ----------------------------------------------------------------
 
-export type Access = { login: string; canPush: boolean };
+export type Access = { login: string; canPush: boolean; reason?: string };
 
 async function api(path: string, token: string, init: RequestInit, fetchFn: typeof fetch) {
   const url = `https://api.github.com${path}`;
@@ -79,10 +79,13 @@ export async function checkAccess(token: string, fetchFn: typeof fetch = fetch):
   if (!u.ok) throw new Error(`GitHub odpověděl ${u.status}`);
   const login = String(((await u.json()) as Json).login ?? '');
   const r = await api(`/repos/${DATA_REPO}`, token, {}, fetchFn);
-  if (r.status === 404 || r.status === 403) return { login, canPush: false };
+  if (r.status === 404) return { login, canPush: false, reason: 'repo není pro tento účet viditelné: GitHub App není nainstalovaná na datovém repu, nebo k němu nemáš přístup (404)' };
+  if (r.status === 403) return { login, canPush: false, reason: 'GitHub odepřel přístup (403)' };
   if (!r.ok) throw new Error(`GitHub odpověděl ${r.status}`);
+  // GitHub may omit `permissions` for app tokens: then the real write check happens on upload.
   const perms = ((await r.json()) as { permissions?: { push?: boolean } }).permissions;
-  return { login, canPush: perms?.push === true };
+  if (perms && perms.push === false) return { login, canPush: false, reason: 'účet má jen právo číst, ne zapisovat' };
+  return { login, canPush: true };
 }
 
 // ---- report ----------------------------------------------------------------------

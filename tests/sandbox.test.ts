@@ -63,8 +63,11 @@ test('access: push rights unlock, others stay locked', async () => {
   const mk = (repo: { status: number; body: unknown }) => (async (url: string) =>
     url.endsWith('/user') ? new Response(JSON.stringify({ login: 'me' })) : new Response(JSON.stringify(repo.body), { status: repo.status })) as never;
   assert.deepEqual(await checkAccess('t', mk({ status: 200, body: { permissions: { push: true } } })), { login: 'me', canPush: true });
-  assert.deepEqual(await checkAccess('t', mk({ status: 200, body: { permissions: { push: false } } })), { login: 'me', canPush: false });
-  assert.deepEqual(await checkAccess('t', mk({ status: 404, body: {} })), { login: 'me', canPush: false });
+  assert.equal((await checkAccess('t', mk({ status: 200, body: { permissions: { push: false } } }))).canPush, false);
+  assert.equal((await checkAccess('t', mk({ status: 404, body: {} }))).canPush, false);
+  assert.match((await checkAccess('t', mk({ status: 404, body: {} }))).reason ?? '', /nainstalovaná/);
+  // permissions omitted by GitHub: allowed, upload enforces the real write check
+  assert.equal((await checkAccess('t', mk({ status: 200, body: { id: 1 } }))).canPush, true);
   await assert.rejects(() => checkAccess('t', json(401, {}) as never), /unauthorized/);
 });
 
