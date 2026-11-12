@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Chunky from './Chunky';
+import { DAY_GOALS, Goal } from './rules';
 import type { Settings } from './storage';
 import { Palette, useStyles, useTheme } from './theme';
 import type { UpdateInfo } from './update';
@@ -35,6 +36,8 @@ const STATUS: Record<UpdateState, string> = {
   downloading: 'Stahuji aktualizaci…',
 };
 
+const GOALS: { id: Goal; label: string }[] = DAY_GOALS.map((g) => ({ id: g, label: `${g} minut` }));
+
 export default function SettingsScreen(p: Props) {
   const c = useTheme();
   const s = useStyles(makeS);
@@ -51,6 +54,15 @@ export default function SettingsScreen(p: Props) {
           {settings.mode === m.id && <Text style={{ color: c.blue, fontWeight: '900' }}>✓</Text>}
         </Pressable>
       ))}
+
+      <Text style={s.section}>Denní cíl</Text>
+      {GOALS.map((g) => (
+        <Pressable key={g.id} style={[s.row, settings.goal === g.id && s.rowOn]} onPress={() => onChange({ ...settings, goal: g.id })}>
+          <Text style={[s.rowText, settings.goal === g.id && { color: c.blue }]}>{g.label}</Text>
+          {settings.goal === g.id && <Text style={{ color: c.blue, fontWeight: '900' }}>✓</Text>}
+        </Pressable>
+      ))}
+      <Text style={s.hint}>Den se počítá (série, mince, zahrada) až po dosažení cíle.</Text>
 
       <Text style={s.section}>Focus</Text>
       <View style={s.row}>

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearBackup, ensureBackup, loadBackup } from './devBackup';
-import { Game, Stats, emptyGame, emptyStats, dayKey } from './rules';
+import { Game, Goal, Stats, DEFAULT_GOAL, emptyGame, emptyStats, dayKey } from './rules';
 
 export const MAX_APPS = 5;
 
@@ -26,15 +26,16 @@ export const saveAllowed = (ids: string[]) => setJson('focus.allowed', ids);
 export const dndAsked = async () => (await AsyncStorage.getItem('focus.dndAsked')) === '1';
 export const setDndAsked = () => AsyncStorage.setItem('focus.dndAsked', '1');
 
-// settings
+// settings (goal = daily focus goal in minutes; stored settings without it get the default)
 export type Settings = {
   mode: 'system' | 'light' | 'dark';
   dnd: boolean;
   autoUpdate: boolean; // check GitHub for a new version on start
   notified: string; // last update version the user was told about
   nickname: string;
+  goal: Goal;
 };
-export const loadSettings = () => getJson<Settings>('focus.settings', { mode: 'system', dnd: true, autoUpdate: true, notified: '', nickname: 'Zahradník' });
+export const loadSettings = () => getJson<Settings>('focus.settings', { mode: 'system', dnd: true, autoUpdate: true, notified: '', nickname: 'Zahradník', goal: DEFAULT_GOAL });
 export const saveSettings = (s: Settings) => setJson('focus.settings', s);
 
 // stats (focus minutes per day, frozen days, running session)

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  CATALOG, applyFreezes, dayKey, emptyGame, emptyStats, growPlots, plantItem, plotEmoji, rewardForStreak, streak, weekDays,
+  CATALOG, applyFreezes, dayCompleted, dayKey, emptyGame, emptyStats, growPlots, plantItem, plotEmoji, rewardForStreak, streak, weekDays,
 } from '../src/rules.ts';
 
 // Wednesday 2026-11-11, noon. day(-1) is yesterday.
@@ -57,8 +57,31 @@ test('no gap or no streak: no cube is spent', () => {
 
 test('frozen days bridge to today without adding to the streak', () => {
   const s = applyFreezes(withDays([-3, -4]), 2, now).stats;
-  s.days[dayKey(now)] = 3;
+  // Today must reach the default daily goal (5 min) to count as completed.
+  s.days[dayKey(now)] = 5;
   assert.equal(streak(s, now), 3);
+});
+
+test('a day counts only once the daily goal is reached', () => {
+  const s = emptyStats();
+  s.days[dayKey(now)] = 4;
+  assert.equal(dayCompleted(s, now), false); // below the default goal (5)
+  assert.equal(streak(s, now), 0);
+  s.days[dayKey(now)] = 5;
+  assert.equal(dayCompleted(s, now), true); // default goal met
+  assert.equal(streak(s, now), 1);
+  assert.equal(dayCompleted(s, now, 10), false); // a stricter goal is not met yet
+  s.days[dayKey(now)] = 10;
+  assert.equal(dayCompleted(s, now, 10), true);
+});
+
+test('a partial day does not anchor the streak or spend cubes', () => {
+  const s = emptyStats();
+  s.days[dayKey(day(-1))] = 3; // yesterday stayed below the default goal
+  const r = applyFreezes(s, 5, now);
+  assert.equal(r.used, 0);
+  assert.equal(r.cubes, 5);
+  assert.equal(streak(r.stats, now), 0);
 });
 
 test('garden: buying, growing and capping a plant', () => {

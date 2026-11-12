@@ -15,7 +15,7 @@ import SettingsScreen, { UpdateState } from './src/SettingsScreen';
 import SetupScreen from './src/SetupScreen';
 import TabBar, { Tab } from './src/TabBar';
 import {
-  Game, Stats, applyFreezes, emptyGame, emptyStats, growPlots, plantItem, rewardForStreak, streak, todayMinutes, weekDays,
+  DEFAULT_GOAL, Game, Stats, applyFreezes, dayCompleted, emptyGame, emptyStats, growPlots, plantItem, rewardForStreak, streak, todayMinutes, weekDays,
 } from './src/rules';
 import {
   Dev, Settings, dndAsked, endSession, loadAllowed, loadGame, loadSettings, loadStats, saveAllowed, saveGame, saveSettings,
@@ -45,7 +45,7 @@ export default function App() {
   const [active, setActive] = useState(false);
   const [stats, setStats] = useState<Stats>(emptyStats());
   const [game, setGame] = useState<Game>(emptyGame());
-  const [settings, setSettings] = useState<Settings>({ mode: 'system', dnd: true, autoUpdate: true, notified: '', nickname: 'Zahradník' });
+  const [settings, setSettings] = useState<Settings>({ mode: 'system', dnd: true, autoUpdate: true, notified: '', nickname: 'Zahradník', goal: DEFAULT_GOAL });
   const [dev, setDev] = useState<Dev>({ unlocked: false, offsetDays: 0 });
   const [backupAt, setBackupAt] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>('home');
@@ -63,7 +63,7 @@ export default function App() {
 
   /** Ice cubes save the streak for missed days (runs on app start and after a developer time shift). */
   const settleFreezes = async (st: Stats, g: Game) => {
-    const f = applyFreezes(st, g.cubes, clockNow());
+    const f = applyFreezes(st, g.cubes, clockNow(), settings.goal);
     if (f.used > 0) {
       st = await saveStats(f.stats);
       g = await saveGame({ ...g, cubes: f.cubes });
@@ -74,7 +74,7 @@ export default function App() {
 
   /** First completed focus of the day: rewards, the garden grows a day, celebration. */
   const grantReward = async (after: Stats, t: number) => {
-    const n = streak(after, t);
+    const n = streak(after, t, settings.goal);
     const r = rewardForStreak(n);
     const cur = await loadGame(); // fresh copy, not the render closure
     const g = await saveGame({ ...cur, coins: cur.coins + r.coins, cubes: cur.cubes + r.cubes, plots: growPlots(cur.plots) });
@@ -162,11 +162,12 @@ export default function App() {
       if (active) {
         await Focus.stop();
         const t = clockNow();
-        const wasDone = todayMinutes(stats, t) > 0;
+        const goal = settings.goal;
+        const wasDone = dayCompleted(stats, t, goal);
         const after = await endSession(t);
         setStats(after);
         setActive(false);
-        if (!wasDone && todayMinutes(after, t) > 0) {
+        if (!wasDone && dayCompleted(after, t, goal)) {
           await grantReward(after, t);
         }
         return;
@@ -313,10 +314,11 @@ export default function App() {
               active={active}
               tiles={apps.filter((a) => allowed.includes(a.id))}
               today={todayMinutes(stats, now)}
-              streakDays={streak(stats, now)}
+              goal={settings.goal}
+              streakDays={streak(stats, now, settings.goal)}
               cubes={game.cubes}
               coins={game.coins}
-              week={weekDays(stats, now)}
+              week={weekDays(stats, now, settings.goal)}
               onToggle={toggleFocus}
               onLaunch={(id) => run(() => Focus.launchApp(id))}
               onChangeApps={() => run(async () => { await saveAllowed([]); setAllowed(null); })}
