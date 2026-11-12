@@ -31,3 +31,11 @@ All rules live in [`src/rules.ts`](../src/rules.ts) as pure functions and are co
 
 ## Known trade-offs
 - One minute is enough to complete a day, so coins can be farmed. A configurable daily goal is on the roadmap.
+
+## Profile
+
+- **XP** = total focused minutes + 10 per completed day.
+- **Levels** (XP needed): Seedling 0 · Sprout 50 · Sapling 150 · Plant 300 · Bush 600 · Tree 1000 · Grove 1600 · Forest 2500 (shown with Czech names in the app).
+- **Records**: current and longest streak (frozen days keep a run alive without adding to it), total time, number of sessions, longest session, best day, and a 12-week activity heatmap.
+- **Badges** are derived from your data (first focus, streaks of 3/7/14/30/100, 1/10/100 hours, first plant, grown tree, full garden, streak saved by an ice cube). Nothing extra is stored, so they cannot be lost or faked locally.
+- **Share card**: a picture generated on the device from nickname, level, streak, total time, badge count and garden. It leaves the phone only when you pick a target in the system share sheet.

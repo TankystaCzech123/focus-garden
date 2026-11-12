@@ -31,8 +31,9 @@ export type Settings = {
   dnd: boolean;
   autoUpdate: boolean; // check GitHub for a new version on start
   notified: string; // last update version the user was told about
+  nickname: string;
 };
-export const loadSettings = () => getJson<Settings>('focus.settings', { mode: 'system', dnd: true, autoUpdate: true, notified: '' });
+export const loadSettings = () => getJson<Settings>('focus.settings', { mode: 'system', dnd: true, autoUpdate: true, notified: '', nickname: 'Zahradník' });
 export const saveSettings = (s: Settings) => setJson('focus.settings', s);
 
 // stats (focus minutes per day, frozen days, running session)
@@ -47,11 +48,15 @@ export async function startSession(now: number): Promise<Stats> {
 export async function endSession(now: number, credit = true): Promise<Stats> {
   const s = await loadStats();
   const days = { ...s.days };
+  let { sessions, bestSession } = s;
   if (credit && s.startedAt) {
     const k = dayKey(now);
-    days[k] = (days[k] ?? 0) + Math.round((now - s.startedAt) / 60_000);
+    const mins = Math.round((now - s.startedAt) / 60_000);
+    days[k] = (days[k] ?? 0) + mins;
+    sessions += 1;
+    bestSession = Math.max(bestSession, mins);
   }
-  return saveStats({ ...s, days, startedAt: null });
+  return saveStats({ ...s, days, sessions, bestSession, startedAt: null });
 }
 
 // game (coins, ice cubes, garden)

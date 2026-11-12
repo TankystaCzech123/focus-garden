@@ -7,6 +7,7 @@ import Chunky from './src/Chunky';
 import DevLogScreen from './src/DevLogScreen';
 import FocusScreen from './src/FocusScreen';
 import GardenScreen from './src/GardenScreen';
+import ProfileScreen from './src/ProfileScreen';
 import SettingsScreen, { UpdateState } from './src/SettingsScreen';
 import SetupScreen from './src/SetupScreen';
 import TabBar, { Tab } from './src/TabBar';
@@ -41,7 +42,7 @@ export default function App() {
   const [active, setActive] = useState(false);
   const [stats, setStats] = useState<Stats>(emptyStats());
   const [game, setGame] = useState<Game>(emptyGame());
-  const [settings, setSettings] = useState<Settings>({ mode: 'system', dnd: true, autoUpdate: true, notified: '' });
+  const [settings, setSettings] = useState<Settings>({ mode: 'system', dnd: true, autoUpdate: true, notified: '', nickname: 'Zahradník' });
   const [tab, setTab] = useState<Tab>('home');
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState('');
@@ -229,6 +230,14 @@ export default function App() {
                 const g = plantItem(game, i, id);
                 if (g) run(async () => setGame(await saveGame(g)));
               }}
+            />
+          )}
+          {tab === 'profile' && (
+            <ProfileScreen
+              stats={stats}
+              game={game}
+              nickname={settings.nickname}
+              onNickname={(nickname) => changeSettings({ ...settings, nickname })}
             />
           )}
           {tab === 'settings' && (

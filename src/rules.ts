@@ -1,12 +1,18 @@
 // Pure game rules (no React / storage imports) so they can be tested with plain node.
 
-export type Stats = { days: Record<string, number>; frozen: Record<string, true>; startedAt: number | null };
+export type Stats = {
+  days: Record<string, number>;
+  frozen: Record<string, true>;
+  startedAt: number | null;
+  sessions: number; // finished sessions
+  bestSession: number; // longest session in minutes
+};
 export type Plot = { id: string; grown: number };
 export type Game = { coins: number; cubes: number; plots: (Plot | null)[] };
 export type Item = { id: string; name: string; price: number; days: number; stages: string[] };
 
 export const PLOTS = 12;
-export const emptyStats = (): Stats => ({ days: {}, frozen: {}, startedAt: null });
+export const emptyStats = (): Stats => ({ days: {}, frozen: {}, startedAt: null, sessions: 0, bestSession: 0 });
 export const emptyGame = (): Game => ({ coins: 0, cubes: 0, plots: Array(PLOTS).fill(null) });
 
 /** days = how many focus days until fully grown; 0 = decoration. */
@@ -109,4 +115,96 @@ export function plantItem(g: Game, index: number, itemId: string): Game | null {
   const plots = g.plots.slice();
   plots[index] = { id: item.id, grown: 0 };
   return { ...g, coins: g.coins - item.price, plots };
+}
+
+// ---- profile: XP, levels, records, badges -----------------------------------
+
+export const totalMinutes = (s: Stats) => Object.values(s.days).reduce((a, b) => a + b, 0);
+export const doneDays = (s: Stats) => Object.values(s.days).filter((m) => m > 0).length;
+
+/** XP = focused minutes + 10 per completed day. */
+export const xp = (s: Stats) => totalMinutes(s) + 10 * doneDays(s);
+
+export const LEVELS = [
+  { min: 0, name: 'Semínko', emoji: '🌰' },
+  { min: 50, name: 'Klíček', emoji: '🌱' },
+  { min: 150, name: 'Sazenice', emoji: '🌿' },
+  { min: 300, name: 'Rostlinka', emoji: '🪴' },
+  { min: 600, name: 'Keřík', emoji: '🌼' },
+  { min: 1000, name: 'Strom', emoji: '🌳' },
+  { min: 1600, name: 'Hájek', emoji: '🌲' },
+  { min: 2500, name: 'Les', emoji: '🏞️' },
+];
+
+export function levelInfo(points: number) {
+  let i = 0;
+  while (i + 1 < LEVELS.length && points >= LEVELS[i + 1].min) i++;
+  const cur = LEVELS[i];
+  const next = LEVELS[i + 1];
+  return {
+    level: i + 1,
+    name: cur.name,
+    emoji: cur.emoji,
+    next: next ? next.min - points : 0, // XP missing for the next level (0 = max)
+    progress: next ? (points - cur.min) / (next.min - cur.min) : 1,
+  };
+}
+
+/** Longest run of consecutive days with focus; frozen days keep the run alive without adding to it. */
+export function longestStreak(s: Stats): number {
+  const keys = [...new Set([...Object.keys(s.days).filter((k) => s.days[k] > 0), ...Object.keys(s.frozen)])].sort();
+  if (!keys.length) return 0;
+  const toT = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d, 12).getTime(); };
+  let best = 0;
+  let run = 0;
+  let prev: string | null = null;
+  for (const k of keys) {
+    const consecutive = prev !== null && dayKey(toT(prev) + 86_400_000) === k;
+    run = consecutive ? run : 0;
+    if ((s.days[k] ?? 0) > 0) run++;
+    best = Math.max(best, run);
+    prev = k;
+  }
+  return best;
+}
+
+export const bestDay = (s: Stats) => Math.max(0, ...Object.values(s.days));
+
+/** Last `weeks` weeks as columns (Mon..Sun), oldest first; minutes = null for future days. */
+export function activity(s: Stats, now: number, weeks = 12) {
+  const dow = (new Date(now).getDay() + 6) % 7;
+  const cols: { key: string; minutes: number | null }[][] = [];
+  for (let w = weeks - 1; w >= 0; w--) {
+    const col = [];
+    for (let d = 0; d < 7; d++) {
+      const t = at(now, -dow - w * 7 + d);
+      col.push({ key: dayKey(t), minutes: t > now && dayKey(t) !== dayKey(now) ? null : s.days[dayKey(t)] ?? 0 });
+    }
+    cols.push(col);
+  }
+  return cols;
+}
+
+export type Badge = { id: string; emoji: string; name: string; hint: string; earned: boolean };
+
+export function badges(s: Stats, g: Game): Badge[] {
+  const best = longestStreak(s);
+  const hours = totalMinutes(s) / 60;
+  const planted = g.plots.filter(Boolean) as Plot[];
+  const defs: [string, string, string, string, boolean][] = [
+    ['first', '🎯', 'První focus', 'Dokonči první focus', doneDays(s) >= 1],
+    ['s3', '🔥', 'Série 3', 'Série 3 dny', best >= 3],
+    ['s7', '🔥', 'Série 7', 'Série 7 dní', best >= 7],
+    ['s14', '🔥', 'Série 14', 'Série 14 dní', best >= 14],
+    ['s30', '🏆', 'Série 30', 'Série 30 dní', best >= 30],
+    ['s100', '👑', 'Série 100', 'Série 100 dní', best >= 100],
+    ['h1', '⏱️', '1 hodina', 'Celkem 1 hodina focusu', hours >= 1],
+    ['h10', '⌛', '10 hodin', 'Celkem 10 hodin focusu', hours >= 10],
+    ['h100', '🧘', '100 hodin', 'Celkem 100 hodin focusu', hours >= 100],
+    ['plant', '🌱', 'První rostlina', 'Zasaď cokoli do zahrádky', planted.length >= 1],
+    ['tree', '🌳', 'Dospělý strom', 'Dopěstuj strom', planted.some((p) => p.id === 'tree' && plotStage(p) === 2)],
+    ['full', '🏡', 'Plná zahrádka', 'Obsaď všech 12 polí', planted.length >= PLOTS],
+    ['ice', '❄️', 'Zachráněno ledem', 'Ledová kostka zachrání sérii', Object.keys(s.frozen).length >= 1],
+  ];
+  return defs.map(([id, emoji, name, hint, earned]) => ({ id, emoji, name, hint, earned }));
 }

@@ -17,6 +17,7 @@ Focus Garden is built to be private by design.
 | `REQUEST_INSTALL_PACKAGES` | Android | Hand the downloaded APK to Android's installer when you tap *Install update*. You must allow it once. |
 | `VIBRATE`, `SYSTEM_ALERT_WINDOW` | Android | Declared by the Expo / React Native framework. |
 
+- **Profile share card** is rendered locally as an image. It is only shared if you choose a target in the system share sheet.
 - **Dev Log** is a local text log (last ~200 events) shown inside the app. It never leaves the device unless you copy it yourself, for example into a bug report. It contains package names of apps you opened during focus mode, so review it before sharing.
 
 Questions or concerns? Open an issue or see [SECURITY.md](../SECURITY.md).

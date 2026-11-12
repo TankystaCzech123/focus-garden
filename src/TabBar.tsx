@@ -1,10 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Palette, useStyles } from './theme';
 
-export type Tab = 'home' | 'garden' | 'settings';
+export type Tab = 'home' | 'garden' | 'profile' | 'settings';
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'home', icon: '🔥', label: 'Focus' },
   { id: 'garden', icon: '🌱', label: 'Zahrada' },
+  { id: 'profile', icon: '🏅', label: 'Profil' },
   { id: 'settings', icon: '⚙️', label: 'Nastavení' },
 ];
 
