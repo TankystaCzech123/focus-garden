@@ -73,6 +73,12 @@ public class FocusNativeModule: Module {
     Function("dndGranted") { () -> Bool in true }
     AsyncFunction("openDndSettings") { }
 
+    Function("getVersion") { () -> String in
+      Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
+    }
+    // iOS apps cannot install updates themselves (App Store / TestFlight only).
+    AsyncFunction("downloadAndInstall") { (_: String) -> String in "unsupported" }
+
     AsyncFunction("getDevLog") { () -> String in "" }
     AsyncFunction("clearDevLog") { }
 

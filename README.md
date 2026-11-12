@@ -18,6 +18,7 @@ shrinks down to just those apps. Keep your daily streak, earn coins and grow a l
 - **Streak** – a Duolingo-style daily streak with a weekly overview and a celebration screen.
 - **Ice cubes ❄️** – streak freezes: earn 1 cube every 3 days and 2 every 7 days (4 per week); one cube is spent per missed day.
 - **Coins 🪙 and garden** – 5 coins per focused day, +15 for every 7-day streak. Buy seeds and decorations and grow your garden.
+- **Updates from GitHub (Android)** – Settings can check this repo's releases, notify you of a new version and install it with one tap (optional, can be turned off).
 - **Light / dark theme**, a built-in **Dev Log** for debugging, and everything stored **locally on your phone**.
 
 Details of the rules are in [docs/GAME_RULES.md](docs/GAME_RULES.md).

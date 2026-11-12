@@ -26,8 +26,13 @@ export const dndAsked = async () => (await AsyncStorage.getItem('focus.dndAsked'
 export const setDndAsked = () => AsyncStorage.setItem('focus.dndAsked', '1');
 
 // settings
-export type Settings = { mode: 'system' | 'light' | 'dark'; dnd: boolean };
-export const loadSettings = () => getJson<Settings>('focus.settings', { mode: 'system', dnd: true });
+export type Settings = {
+  mode: 'system' | 'light' | 'dark';
+  dnd: boolean;
+  autoUpdate: boolean; // check GitHub for a new version on start
+  notified: string; // last update version the user was told about
+};
+export const loadSettings = () => getJson<Settings>('focus.settings', { mode: 'system', dnd: true, autoUpdate: true, notified: '' });
 export const saveSettings = (s: Settings) => setJson('focus.settings', s);
 
 // stats (focus minutes per day, frozen days, running session)

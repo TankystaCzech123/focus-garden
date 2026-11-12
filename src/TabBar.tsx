@@ -8,13 +8,14 @@ const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'settings', icon: '⚙️', label: 'Nastavení' },
 ];
 
-export default function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
+export default function TabBar({ tab, onChange, badge }: { tab: Tab; onChange: (t: Tab) => void; badge?: Tab }) {
   const s = useStyles(makeS);
   return (
     <View style={s.bar}>
       {TABS.map((t) => (
         <Pressable key={t.id} style={[s.tab, tab === t.id && s.on]} onPress={() => onChange(t.id)}>
           <Text style={s.icon}>{t.icon}</Text>
+          {badge === t.id && <View style={s.badge} />}
           <Text style={[s.label, tab === t.id && s.labelOn]}>{t.label}</Text>
         </Pressable>
       ))}
@@ -30,4 +31,5 @@ const makeS = (c: Palette) =>
     icon: { fontSize: 22 },
     label: { fontSize: 11, fontWeight: '800', color: c.faint, textTransform: 'uppercase', marginTop: 2 },
     labelOn: { color: c.blue },
+    badge: { position: 'absolute', top: 4, right: '28%', width: 12, height: 12, borderRadius: 6, backgroundColor: c.red, borderWidth: 2, borderColor: c.bg },
   });

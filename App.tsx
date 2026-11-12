@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Focus, { AppInfo } from './modules/focus-native/src';
 import Celebrate, { Reward } from './src/Celebrate';
@@ -7,7 +7,7 @@ import Chunky from './src/Chunky';
 import DevLogScreen from './src/DevLogScreen';
 import FocusScreen from './src/FocusScreen';
 import GardenScreen from './src/GardenScreen';
-import SettingsScreen from './src/SettingsScreen';
+import SettingsScreen, { UpdateState } from './src/SettingsScreen';
 import SetupScreen from './src/SetupScreen';
 import TabBar, { Tab } from './src/TabBar';
 import {
@@ -18,6 +18,7 @@ import {
   saveStats, setDndAsked, startSession,
 } from './src/storage';
 import { ThemeProvider, dark, light } from './src/theme';
+import { UpdateInfo, checkForUpdate } from './src/update';
 
 const askDnd = () =>
   new Promise<'continue' | 'settings'>((resolve) =>
@@ -40,11 +41,15 @@ export default function App() {
   const [active, setActive] = useState(false);
   const [stats, setStats] = useState<Stats>(emptyStats());
   const [game, setGame] = useState<Game>(emptyGame());
-  const [settings, setSettings] = useState<Settings>({ mode: 'system', dnd: true });
+  const [settings, setSettings] = useState<Settings>({ mode: 'system', dnd: true, autoUpdate: true, notified: '' });
   const [tab, setTab] = useState<Tab>('home');
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState('');
   const [reward, setReward] = useState<Reward | null>(null);
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [updateState, setUpdateState] = useState<UpdateState>('idle');
+  const [updateError, setUpdateError] = useState('');
+  const version = Focus.getVersion();
 
   const run = (fn: () => Promise<unknown>) => fn().catch((e) => Alert.alert('Chyba', String(e)));
   const refreshLog = () => Focus.getDevLog().then(setLog).catch(() => setLog('(chyba čtení logu)'));
@@ -73,8 +78,57 @@ export default function App() {
       setStats(st);
       setGame(g);
       setReady(true);
+
+      // Silent update check on start (Android only, can be turned off in Settings).
+      const cfg = await loadSettings();
+      if (Platform.OS === 'android' && cfg.autoUpdate) {
+        const info = await runCheck(false);
+        if (info && cfg.notified !== info.version) {
+          const next = { ...cfg, notified: info.version };
+          setSettings(next);
+          await saveSettings(next);
+          Alert.alert('Nová verze ' + info.version, 'Je dostupná nová verze aplikace. Chceš ji teď nainstalovat?', [
+            { text: 'Později', style: 'cancel' },
+            { text: 'Nainstalovat', onPress: () => { setTab('settings'); void installUpdate(info); } },
+          ]);
+        }
+      }
     });
   }, []);
+
+  /** Asks GitHub for the latest release. Returns the update if a newer version exists. */
+  const runCheck = async (manual: boolean): Promise<UpdateInfo | null> => {
+    if (manual) setUpdateState('checking');
+    try {
+      const r = await checkForUpdate(version);
+      if (r.status === 'update') {
+        setUpdate(r.info);
+        setUpdateState('idle');
+        return r.info;
+      }
+      setUpdate(null);
+      if (manual) setUpdateState(r.status);
+    } catch (e) {
+      if (manual) { setUpdateError(String((e as Error).message ?? e)); setUpdateState('error'); }
+    }
+    return null;
+  };
+
+  const installUpdate = async (info: UpdateInfo | null = update) => {
+    if (!info) return;
+    setUpdateState('downloading');
+    try {
+      const r = await Focus.downloadAndInstall(info.url);
+      if (r === 'needsPermission') {
+        Alert.alert('Povol instalaci', 'Android potřebuje jednorázově povolit instalaci aplikací z Focus. Zapni přepínač, vrať se zpět a klepni znovu na Nainstalovat.');
+      }
+    } catch (e) {
+      setUpdateError(String((e as Error).message ?? e));
+      setUpdateState('error');
+      return;
+    }
+    setUpdateState('idle');
+  };
 
   const changeSettings = (s: Settings) => { setSettings(s); run(() => saveSettings(s)); };
 
@@ -178,10 +232,20 @@ export default function App() {
             />
           )}
           {tab === 'settings' && (
-            <SettingsScreen settings={settings} onChange={changeSettings} onDevLog={() => { refreshLog(); setShowLog(true); }} />
+            <SettingsScreen
+              settings={settings}
+              onChange={changeSettings}
+              onDevLog={() => { refreshLog(); setShowLog(true); }}
+              version={version}
+              update={update}
+              updateState={updateState}
+              updateError={updateError}
+              onCheckUpdate={() => { void runCheck(true); }}
+              onInstallUpdate={() => { void installUpdate(); }}
+            />
           )}
         </View>
-        <TabBar tab={tab} onChange={setTab} />
+        <TabBar tab={tab} onChange={setTab} badge={update ? 'settings' : undefined} />
       </View>
     );
   };

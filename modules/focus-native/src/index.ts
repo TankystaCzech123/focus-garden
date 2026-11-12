@@ -12,6 +12,8 @@ type Native = {
   isActive(): boolean;
   dndGranted(): boolean;
   openDndSettings(): Promise<void>;
+  getVersion(): string;
+  downloadAndInstall(url: string): Promise<'started' | 'needsPermission' | 'unsupported'>;
   getDevLog(): Promise<string>;
   clearDevLog(): Promise<void>;
 };
