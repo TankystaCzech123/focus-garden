@@ -1,6 +1,6 @@
 {
   "name": "focus-garden",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Gamified focus app for Android and iOS: lock your phone to a few apps, keep your streak and grow a garden.",
   "license": "MIT",
   "private": true,
