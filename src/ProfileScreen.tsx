@@ -4,18 +4,27 @@ import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import Chunky from './Chunky';
 import { now as clockNow } from './clock';
-import { Game, Stats, activity, badges, bestDay, levelInfo, longestStreak, plotEmoji, streak, totalMinutes, xp } from './rules';
-import { Palette, useStyles, useTheme } from './theme';
+import Avatar from './Avatar';
+import { resolveLook } from './cosmetics';
+import { Game, LEVELS, Stats, activity, badges, bestDay, gardenBonus, levelInfo, longestStreak, plotEmoji, streak, totalMinutes, xp } from './rules';
+import { Palette, dark, useStyles, useTheme } from './theme';
 
-type Props = { stats: Stats; game: Game; nickname: string; onNickname: (n: string) => void };
+type Props = { stats: Stats; game: Game; nickname: string; onNickname: (n: string) => void; onCustomize: () => void };
 
 const hoursText = (min: number) => (min < 60 ? `${min} min` : `${(min / 60).toFixed(1).replace('.0', '')} h`);
 
-export default function ProfileScreen({ stats, game, nickname, onNickname }: Props) {
+export default function ProfileScreen({ stats, game, nickname, onNickname, onCustomize }: Props) {
   const c = useTheme();
   const s = useStyles(makeS);
   const cardRef = useRef<ComponentRef<typeof View>>(null);
   const [showCard, setShowCard] = useState(false);
+  const [showLevels, setShowLevels] = useState(false);
+  const [talk, setTalk] = useState(0);
+  const look = resolveLook(game.look);
+  const isDark = c.bg === dark.bg;
+  const pageBg = look.bg.bg ? (isDark ? look.bg.bg.dark : look.bg.bg.light) : c.bg;
+  const cardBg = look.card.card?.bg ?? c.card;
+  const cardFg = look.card.card?.fg ?? c.text;
 
   const now = clockNow();
   const lv = levelInfo(xp(stats));
@@ -25,6 +34,13 @@ export default function ProfileScreen({ stats, game, nickname, onNickname }: Pro
   const bs = badges(stats, game);
   const earned = bs.filter((b) => b.earned).length;
   const grid = activity(stats, now, 12);
+  const passive = gardenBonus(game.plots);
+  const says = [
+    cur > 0 ? `Série ${cur} dní. Jedeme dál! 🔥` : 'Dnes ještě nic. Začni focus a zahrada poroste. 🌱',
+    passive.coins || passive.xp ? `Dorostlá zahrada mi denně vydělává +${passive.coins} 🪙 a +${passive.xp} XP.` : 'Dorostlé rostliny ti budou vydělávat i bez focusu.',
+    lv.next ? `Do další úrovně mi chybí ${lv.next} XP.` : 'Jsem na nejvyšší úrovni! 🏆',
+    `Už mám ${earned} z ${bs.length} odznaků.`,
+  ];
   const garden = game.plots.filter(Boolean).map((p) => plotEmoji(p!)).slice(0, 12).join('');
   const shade = (m: number | null) =>
     m === null ? 'transparent' : m === 0 ? c.border : m < 15 ? '#B7E88A' : m < 45 ? '#7ED321' : c.green;
@@ -40,20 +56,26 @@ export default function ProfileScreen({ stats, game, nickname, onNickname }: Pro
   };
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.content}>
-      <View style={s.hero}>
-        <Text style={s.heroEmoji}>{lv.emoji}</Text>
+    <ScrollView style={[s.screen, { backgroundColor: pageBg }]} contentContainerStyle={s.content}>
+      <View style={[s.hero, { backgroundColor: cardBg }]}>
+        <Pressable onPress={() => setTalk((n) => n + 1)} style={{ marginTop: 18 }}>
+          <Avatar look={game.look} size={110} />
+        </Pressable>
+        {talk > 0 && <Text style={[s.bubble, { color: cardFg }]}>{says[(talk - 1) % says.length]}</Text>}
         <TextInput
-          style={s.nick}
+          style={[s.nick, { color: cardFg }]}
           value={nickname}
           maxLength={20}
           onChangeText={onNickname}
           placeholder="Přezdívka"
           placeholderTextColor={c.faint}
         />
-        <Text style={s.level}>Úroveň {lv.level} · {lv.name}</Text>
+        <Pressable onPress={() => setShowLevels(true)}>
+          <Text style={[s.level, look.card.card && { color: cardFg }]}>Úroveň {lv.level} · {lv.name} ›</Text>
+        </Pressable>
         <View style={s.bar}><View style={[s.fill, { width: `${Math.round(lv.progress * 100)}%` }]} /></View>
-        <Text style={s.small}>{lv.next ? `${xp(stats)} XP · do další úrovně ${lv.next} XP` : `${xp(stats)} XP · nejvyšší úroveň`}</Text>
+        <Text style={[s.small, { color: cardFg, opacity: 0.8 }]}>{lv.next ? `${xp(stats)} XP · do další úrovně ${lv.next} XP` : `${xp(stats)} XP · nejvyšší úroveň`}</Text>
+        <Chunky title="Upravit vzhled v obchodě" onPress={onCustomize} color={c.blue} shade={c.blueDark} style={{ alignSelf: 'stretch', marginTop: 10 }} />
       </View>
 
       <View style={s.tiles}>
@@ -88,10 +110,10 @@ export default function ProfileScreen({ stats, game, nickname, onNickname }: Pro
 
       <Modal visible={showCard} transparent animationType="fade" onRequestClose={() => setShowCard(false)}>
         <View style={s.overlay}>
-          <View ref={cardRef} collapsable={false} style={s.card}>
-            <Text style={s.cardEmoji}>{lv.emoji}</Text>
-            <Text style={s.cardNick}>{nickname || 'Zahradník'}</Text>
-            <Text style={s.cardLevel}>Úroveň {lv.level} · {lv.name}</Text>
+          <View ref={cardRef} collapsable={false} style={[s.card, { backgroundColor: look.card.card?.bg ?? '#FFFFFF', borderColor: look.frame.colors?.[0] ?? '#58CC02' }]}>
+            <View style={{ marginTop: 14 }}><Avatar look={game.look} size={96} /></View>
+            <Text style={[s.cardNick, look.card.card && { color: look.card.card.fg }]}>{nickname || 'Zahradník'}</Text>
+            <Text style={[s.cardLevel, look.card.card && { color: look.card.card.fg }]}>Úroveň {lv.level} {lv.emoji} {lv.name}</Text>
             <View style={s.cardRow}>
               <CardStat s={s} value={`🔥 ${cur}`} label="série" />
               <CardStat s={s} value={hoursText(total)} label="focus" />
@@ -103,6 +125,19 @@ export default function ProfileScreen({ stats, game, nickname, onNickname }: Pro
           <View style={s.actions}>
             <Chunky title="Sdílet" onPress={share} style={{ flex: 1 }} />
             <Chunky title="Zavřít" onPress={() => setShowCard(false)} color={c.disabled} shade={c.disabledDark} textColor={c.text} style={{ flex: 1 }} />
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={showLevels} transparent animationType="fade" onRequestClose={() => setShowLevels(false)}>
+        <View style={s.overlay}>
+          <View style={[s.card, { backgroundColor: c.bg, borderColor: c.border, alignItems: 'stretch' }]}>
+            <Text style={[s.cardNick, { color: c.text, textAlign: 'center' }]}>Úrovně</Text>
+            {LEVELS.map((l, i) => (
+              <Text key={l.name} style={{ color: i + 1 === lv.level ? c.green : c.text, fontWeight: '800', fontSize: 15, marginTop: 6 }}>
+                {l.emoji} {i + 1}. {l.name} <Text style={{ color: c.dim }}>· od {l.min} XP</Text>
+              </Text>
+            ))}
+            <Chunky title="Zavřít" onPress={() => setShowLevels(false)} style={{ marginTop: 14 }} />
           </View>
         </View>
       </Modal>
@@ -129,7 +164,8 @@ const makeS = (c: Palette) =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: c.bg },
     content: { padding: 20, paddingTop: 56, gap: 12 },
-    hero: { alignItems: 'center', gap: 6 },
+    hero: { alignItems: 'center', gap: 6, borderRadius: 24, padding: 16, paddingTop: 4 },
+    bubble: { fontSize: 13, fontWeight: '800', textAlign: 'center', paddingHorizontal: 8 },
     heroEmoji: { fontSize: 64 },
     nick: { fontSize: 24, fontWeight: '800', color: c.text, textAlign: 'center', minWidth: 160 },
     level: { fontSize: 15, fontWeight: '800', color: c.blue },

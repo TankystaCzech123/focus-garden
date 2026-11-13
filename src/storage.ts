@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearBackup, ensureBackup, loadBackup } from './devBackup';
-import { Game, Stats, emptyGame, emptyStats, dayKey } from './rules';
+import { loadGameFrom } from './gameStore';
+import { Game, Stats, emptyStats, dayKey } from './rules';
 
 export const MAX_APPS = 5;
 
@@ -52,7 +53,7 @@ export async function endSession(now: number, credit = true): Promise<Stats> {
   let { sessions, bestSession } = s;
   if (credit && s.startedAt) {
     const k = dayKey(now);
-    const mins = Math.round((now - s.startedAt) / 60_000);
+    const mins = Math.max(0, Math.round((now - s.startedAt) / 60_000));
     days[k] = (days[k] ?? 0) + mins;
     sessions += 1;
     bestSession = Math.max(bestSession, mins);
@@ -73,5 +74,5 @@ export const devBackup = {
 };
 
 // game (coins, ice cubes, garden)
-export const loadGame = () => getJson<Game>('focus.game', emptyGame());
+export const loadGame = () => loadGameFrom(AsyncStorage);
 export const saveGame = (g: Game) => setJson('focus.game', g);

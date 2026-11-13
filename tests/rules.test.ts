@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  CATALOG, applyFreezes, dayKey, emptyGame, emptyStats, growPlots, plantItem, plotEmoji, rewardForStreak, streak, weekDays,
+  applyFreezes, dayKey, emptyStats, rewardForStreak, streak, weekDays,
 } from '../src/rules.ts';
 
 // Wednesday 2026-11-11, noon. day(-1) is yesterday.
@@ -13,7 +13,7 @@ const withDays = (offsets: number[]) => {
   return s;
 };
 
-test('a 7-day streak earns 50 coins and 4 ice cubes in total', () => {
+test('a 7-day streak earns 60 coins and 4 ice cubes in total', () => {
   let coins = 0;
   let cubes = 0;
   for (let n = 1; n <= 7; n++) {
@@ -21,12 +21,12 @@ test('a 7-day streak earns 50 coins and 4 ice cubes in total', () => {
     coins += r.coins;
     cubes += r.cubes;
   }
-  assert.equal(coins, 50);
+  assert.equal(coins, 60);
   assert.equal(cubes, 4);
 });
 
-test('day 21 gives 20 coins and 3 cubes (every 3rd and 7th day)', () => {
-  assert.deepEqual(rewardForStreak(21), { coins: 20, cubes: 3 });
+test('day 21 gives 30 coins and 3 cubes (every 3rd and 7th day)', () => {
+  assert.deepEqual(rewardForStreak(21), { coins: 30, cubes: 3 });
 });
 
 test('streak counts consecutive days', () => {
@@ -59,30 +59,6 @@ test('frozen days bridge to today without adding to the streak', () => {
   const s = applyFreezes(withDays([-3, -4]), 2, now).stats;
   s.days[dayKey(now)] = 3;
   assert.equal(streak(s, now), 3);
-});
-
-test('garden: buying, growing and capping a plant', () => {
-  const g = { ...emptyGame(), coins: 30 };
-  const planted = plantItem(g, 0, 'tulip');
-  assert.ok(planted);
-  assert.equal(planted.coins, 20);
-  assert.equal(plantItem(planted, 0, 'rose'), null); // plot taken
-  assert.equal(plantItem(g, 1, 'tree'), null); // too expensive
-
-  let plots = planted.plots;
-  assert.equal(plotEmoji(plots[0]!), '🌱');
-  plots = growPlots(plots);
-  assert.equal(plotEmoji(plots[0]!), '🌿');
-  plots = growPlots(plots);
-  assert.equal(plotEmoji(plots[0]!), '🌷');
-  plots = growPlots(plots);
-  assert.equal(plots[0]!.grown, 2); // capped at the growth time
-});
-
-test('catalog ids are unique and decorations never grow', () => {
-  assert.equal(new Set(CATALOG.map((i) => i.id)).size, CATALOG.length);
-  const g = plantItem({ ...emptyGame(), coins: 100 }, 0, 'bee')!;
-  assert.equal(growPlots(g.plots)[0]!.grown, 0);
 });
 
 test('week row has 7 days and flags today', () => {

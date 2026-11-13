@@ -27,6 +27,7 @@ When you unlock developer mode, the current statistics, coins, ice cubes and gar
 | Série | Sets the streak to exactly N days ending yesterday, so a focus today still earns the reward. |
 | Splnit dnešek | Marks today done like a finished focus: rewards, garden grows, celebration. |
 | Dorůst rostliny / Vyprázdnit zahrádku | Grow all plants / empty all plots. |
+| Dát semínka / Odemknout vzhled | One of every seed in stock / all shop cosmetics owned. |
 | Ukázat oslavu | Shows the streak celebration screen. |
 | Vrátit původní data | Restores the saved real data (see above). |
 | Resetovat testovací data | Clears stats, coins, ice cubes and garden of the working copy after a confirmation. The real data stay in the backup. |

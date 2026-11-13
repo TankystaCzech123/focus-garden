@@ -16,7 +16,7 @@ test('levels', () => {
   assert.equal(levelInfo(50).name, 'Klíček');
   assert.equal(levelInfo(50).next, 100);
   const max = levelInfo(99999);
-  assert.equal(max.level, 8);
+  assert.equal(max.level, 10);
   assert.equal(max.next, 0);
   assert.equal(max.progress, 1);
 });
@@ -42,7 +42,7 @@ test('badges', () => {
   const none = badges(emptyStats(), emptyGame());
   assert.ok(none.every((b) => !b.earned));
   const s = { ...emptyStats(), days: { [day(0)]: 70, [day(1)]: 1, [day(2)]: 1 }, frozen: { [day(3)]: true as const } };
-  const g = { ...emptyGame(), plots: [{ id: 'tree', grown: 6 }, ...emptyGame().plots.slice(1)] };
+  const g = { ...emptyGame(), plots: [{ id: 'tree', grown: 600 }, ...emptyGame().plots.slice(1)] };
   const earned = badges(s, g).filter((b) => b.earned).map((b) => b.id);
   for (const id of ['first', 's3', 'h1', 'plant', 'tree', 'ice']) assert.ok(earned.includes(id), id);
   assert.ok(!earned.includes('s7'));

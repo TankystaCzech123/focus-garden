@@ -20,6 +20,8 @@ export type DevActions = {
   streak: (n: number) => void;
   completeToday: () => void;
   growAll: () => void;
+  giveSeeds: () => void;
+  unlockAll: () => void;
   clearGarden: () => void;
   celebrate: () => void;
   resetAll: () => void;
@@ -100,7 +102,7 @@ export default function DevSection(p: DevActions) {
         </View>
       </View>
 
-      <Chips label="Akce" items={[['Splnit dnešek', p.completeToday], ['Dorůst rostliny', p.growAll], ['Vyprázdnit zahrádku', p.clearGarden], ['Ukázat oslavu', p.celebrate]]} />
+      <Chips label="Akce" items={[['Splnit dnešek', p.completeToday], ['Dorůst rostliny', p.growAll], ['Dát semínka', p.giveSeeds], ['Odemknout vzhled', p.unlockAll], ['Vyprázdnit zahrádku', p.clearGarden], ['Ukázat oslavu', p.celebrate]]} />
       <Chunky title="Vrátit původní data" onPress={p.onRestore} color={c.blue} shade={c.blueDark} style={{ marginTop: 14 }} />
       <Chunky title="Resetovat testovací data" onPress={p.resetAll} color={c.red} shade={c.redDark} style={{ marginTop: 10 }} />
       <Chunky title="Zamknout" onPress={p.onLock} color={c.disabled} shade={c.disabledDark} textColor={c.text} style={{ marginTop: 10 }} />

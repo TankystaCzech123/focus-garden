@@ -1,4 +1,6 @@
 // Developer-mode operations. Pure functions on Stats/Game so they can be tested; never negative values.
+import { COSMETICS } from './cosmetics.ts';
+import { CATALOG } from './garden.ts';
 import { dayAt, dayKey, itemById } from './rules.ts';
 import type { Game, Stats } from './rules.ts';
 
@@ -38,7 +40,13 @@ export function setStreak(s: Stats, n: number, now: number): Stats {
 /** Every planted seed becomes fully grown. */
 export const growAll = (g: Game): Game => ({
   ...g,
-  plots: g.plots.map((p) => (p ? { ...p, grown: Math.max(p.grown, itemById(p.id)?.days ?? p.grown) } : p)),
+  plots: g.plots.map((p) => (p ? { ...p, grown: Math.max(p.grown, itemById(p.id)?.minutes ?? p.grown) } : p)),
 });
 
 export const clearGarden = (g: Game): Game => ({ ...g, plots: g.plots.map(() => null) });
+
+/** One of every shop item in stock. */
+export const giveAllSeeds = (g: Game): Game => ({ ...g, seeds: Object.fromEntries(CATALOG.map((i) => [i.id, (g.seeds[i.id] ?? 0) + 1])) });
+
+/** Every cosmetic owned. */
+export const unlockAllCosmetics = (g: Game): Game => ({ ...g, owned: COSMETICS.map((c) => `${c.slot}:${c.id}`) });

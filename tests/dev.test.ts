@@ -66,7 +66,7 @@ test('setStreak gives exactly n days ending yesterday', () => {
 test('garden helpers', () => {
   const g = { ...emptyGame(), plots: [{ id: 'tree', grown: 1 }, { id: 'rabbit', grown: 0 }, ...emptyGame().plots.slice(2)] };
   const grown = growAll(g);
-  assert.equal(grown.plots[0]?.grown, 6);
+  assert.equal(grown.plots[0]?.grown, 600);
   assert.equal(grown.plots[1]?.grown, 0);
   assert.ok(clearGarden(grown).plots.every((p) => p === null));
 });

@@ -6,7 +6,9 @@ import Celebrate, { Reward } from './src/Celebrate';
 import Chunky from './src/Chunky';
 import { getOffsetDays, now as clockNow, setOffsetDays } from './src/clock';
 import DevSection from './src/DevSection';
-import { addCoins, addCubes, addMinutes, addXp, clearGarden, growAll, setStreak } from './src/dev';
+import { addCoins, addCubes, addMinutes, addXp, clearGarden, giveAllSeeds, growAll, setStreak, unlockAllCosmetics } from './src/dev';
+import { buyCosmetic, equip } from './src/cosmetics';
+import ShopScreen, { Section } from './src/ShopScreen';
 import DevLogScreen from './src/DevLogScreen';
 import FocusScreen from './src/FocusScreen';
 import GardenScreen from './src/GardenScreen';
@@ -15,7 +17,8 @@ import SettingsScreen, { UpdateState } from './src/SettingsScreen';
 import SetupScreen from './src/SetupScreen';
 import TabBar, { Tab } from './src/TabBar';
 import {
-  Game, Stats, applyFreezes, emptyGame, emptyStats, growPlots, plantItem, rewardForStreak, streak, todayMinutes, weekDays,
+  Game, Stats, applyFreezes, buyPlots, buySeed, collectPassive, emptyGame, migrateGame, emptyStats, focusCoins, growPlots, plantSeed, rewardForStreak, streak,
+  todayMinutes, weekDays,
 } from './src/rules';
 import {
   Dev, Settings, dndAsked, endSession, loadAllowed, loadGame, loadSettings, loadStats, saveAllowed, saveGame, saveSettings,
@@ -49,6 +52,7 @@ export default function App() {
   const [dev, setDev] = useState<Dev>({ unlocked: false, offsetDays: 0 });
   const [backupAt, setBackupAt] = useState<number | null>(null);
   const [tab, setTab] = useState<Tab>('home');
+  const [shopSection, setShopSection] = useState<Section>('seeds');
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState('');
   const [reward, setReward] = useState<Reward | null>(null);
@@ -69,17 +73,35 @@ export default function App() {
       g = await saveGame({ ...g, cubes: f.cubes });
       Alert.alert('❄️ Ledová kostka', `Zachránila tvoji sérii (${f.used} ${f.used === 1 ? 'den' : 'dny/dní'}).`);
     }
+    // The garden pays its daily bonus (fully grown plants), even for days the app was not opened.
+    const col = collectPassive(g, clockNow());
+    if (col.game !== g) g = await saveGame(col.game);
+    if (col.gained.xp > 0) st = await saveStats({ ...st, passiveXp: (st.passiveXp ?? 0) + col.gained.xp });
+    const gn = col.gained;
+    if (gn.coins || gn.xp || gn.cubes) {
+      Alert.alert('🌿 Zahrada vydělala', [gn.coins ? `+${gn.coins} 🪙` : '', gn.xp ? `+${gn.xp} XP` : '', gn.cubes ? `+${gn.cubes} ❄️` : ''].filter(Boolean).join('   ') + ` (za ${gn.days} ${gn.days === 1 ? 'den' : 'dní'})`);
+    }
     return { st, g };
   };
 
-  /** First completed focus of the day: rewards, the garden grows a day, celebration. */
-  const grantReward = async (after: Stats, t: number) => {
-    const n = streak(after, t);
-    const r = rewardForStreak(n);
+  /**
+   * After a focus session: coins for the minutes, the plants grow by the minutes, and on the first completed focus
+   * of the day the streak reward (coins, ice cubes) and the celebration.
+   */
+  const finishFocus = async (after: Stats, t: number, before: number, minutes: number, first: boolean) => {
     const cur = await loadGame(); // fresh copy, not the render closure
-    const g = await saveGame({ ...cur, coins: cur.coins + r.coins, cubes: cur.cubes + r.cubes, plots: growPlots(cur.plots) });
+    const sessionCoins = focusCoins(before, before + minutes);
+    const n = streak(after, t);
+    const r = first ? rewardForStreak(n) : { coins: 0, cubes: 0 };
+    const g = await saveGame({
+      ...cur,
+      coins: cur.coins + sessionCoins + r.coins,
+      cubes: cur.cubes + r.cubes,
+      plots: growPlots(cur.plots, minutes),
+    });
     setGame(g);
-    setReward({ streak: n, ...r });
+    if (first) setReward({ streak: n, coins: r.coins + sessionCoins, cubes: r.cubes });
+    else Alert.alert('Focus hotový ✅', `+${minutes} min focusu${sessionCoins ? ` · +${sessionCoins} 🪙` : ''}. Rostliny rostou.`);
   };
 
   useEffect(() => {
@@ -162,13 +184,12 @@ export default function App() {
       if (active) {
         await Focus.stop();
         const t = clockNow();
-        const wasDone = todayMinutes(stats, t) > 0;
+        const before = todayMinutes(await loadStats(), t); // fresh from storage
         const after = await endSession(t);
         setStats(after);
         setActive(false);
-        if (!wasDone && todayMinutes(after, t) > 0) {
-          await grantReward(after, t);
-        }
+        const minutes = todayMinutes(after, t) - before;
+        if (minutes > 0) await finishFocus(after, t, before, minutes, before === 0);
         return;
       }
       if (settings.dnd && !Focus.dndGranted() && !(await dndAsked())) {
@@ -216,7 +237,7 @@ export default function App() {
     const b = await devBackup.load();
     if (!b) return Alert.alert('Žádná záloha', 'Záloha skutečných dat nebyla nalezena, nic se nezměnilo.');
     setStats(await saveStats(b.stats));
-    setGame(await saveGame(b.game));
+    setGame(await saveGame(migrateGame(b.game))); // the backup may come from an older app version
     setOffsetDays(0);
     const n: Dev = { unlocked: !leave, offsetDays: 0 };
     await saveDev(n);
@@ -259,7 +280,7 @@ export default function App() {
       if (todayMinutes(stats, t) > 0) return Alert.alert('Dnešek už je splněný');
       const after = await saveStats(addMinutes(stats, t, 1));
       setStats(after);
-      await grantReward(after, t);
+      await finishFocus(after, t, 0, 1, true);
     });
   const devReset = () =>
     Alert.alert('Resetovat testovací data?', 'Smaže testovací statistiky, mince, kostky i zahrádku. Tvoje skutečná data jsou uložená stranou a zůstanou.', [
@@ -325,10 +346,22 @@ export default function App() {
           {tab === 'garden' && (
             <GardenScreen
               game={game}
+              onShop={() => setTab('shop')}
               onPlant={(i, id) => {
-                const g = plantItem(game, i, id);
+                const g = plantSeed(game, i, id);
                 if (g) run(async () => setGame(await saveGame(g)));
               }}
+            />
+          )}
+          {tab === 'shop' && (
+            <ShopScreen
+              game={game}
+              section={shopSection}
+              onSection={setShopSection}
+              onBuySeed={(id) => { const g = buySeed(game, id); if (g) run(async () => setGame(await saveGame(g))); }}
+              onBuyCosmetic={(slot, id) => { const g = buyCosmetic(game, slot, id); if (g) run(async () => setGame(await saveGame(g))); }}
+              onEquip={(slot, id) => { const g = equip(game, slot, id); if (g) run(async () => setGame(await saveGame(g))); }}
+              onBuyPlots={() => { const g = buyPlots(game); if (g) run(async () => setGame(await saveGame(g))); }}
             />
           )}
           {tab === 'profile' && (
@@ -337,6 +370,7 @@ export default function App() {
               game={game}
               nickname={settings.nickname}
               onNickname={(nickname) => changeSettings({ ...settings, nickname })}
+              onCustomize={() => { setShopSection('avatar'); setTab('shop'); }}
             />
           )}
           {tab === 'settings' && (
@@ -367,6 +401,8 @@ export default function App() {
                   streak={(n) => devStats((s) => setStreak(s, n, now))}
                   completeToday={devCompleteToday}
                   growAll={() => devGame(growAll)}
+                  giveSeeds={() => devGame(giveAllSeeds)}
+                  unlockAll={() => devGame(unlockAllCosmetics)}
                   clearGarden={() => devGame(clearGarden)}
                   celebrate={() => setReward({ streak: streak(stats, now), coins: 5, cubes: 0 })}
                   resetAll={devReset}

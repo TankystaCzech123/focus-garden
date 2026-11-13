@@ -16,7 +16,7 @@ export default function Celebrate({ reward, onClose }: { reward: Reward | null; 
           <Text style={s.reward}>+{reward?.coins} 🪙</Text>
           {!!reward?.cubes && <Text style={[s.reward, { color: '#1CB0F6' }]}>+{reward.cubes} ❄️</Text>}
         </View>
-        <Text style={s.sub}>Tvoje rostlinky se posunuly o den. Vrať se i zítra.</Text>
+        <Text style={s.sub}>Rostlinky rostou z minut focusu. Vrať se i zítra.</Text>
         <Chunky title="Pokračovat" style={{ alignSelf: 'stretch', marginTop: 28 }} onPress={onClose} />
       </View>
     </Modal>
