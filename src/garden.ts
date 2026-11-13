@@ -1,4 +1,5 @@
 // Garden economy: shop catalog, growth from focus minutes, passive bonuses, expansion. Pure, no React / storage.
+import { DEFAULT_LOOK } from './cosmetics.ts';
 import type { Look } from './cosmetics.ts';
 import { dayKey } from './days.ts';
 
@@ -18,7 +19,7 @@ export type Bonus = { coins?: number; xp?: number; cubeEvery?: number };
 export type Item = { id: string; name: string; price: number; minutes: number; stages: string[]; bonus?: Bonus };
 
 export const PLOTS = 12;
-export const GAME_VERSION = 2;
+export const GAME_VERSION = 3;
 export const MINUTES_PER_COIN = 2; // 1 coin per 2 focused minutes ...
 export const COIN_MINUTES_CAP = 240; // ... for the first 4 hours of a day
 export const MAX_COLLECT_DAYS = 7; // the garden pays out for at most a week of absence
@@ -29,7 +30,7 @@ export const emptyGame = (): Game => ({
   plots: Array(PLOTS).fill(null),
   seeds: {},
   owned: [],
-  look: { avatar: 'smile', hat: 'none', face: 'none', frame: 'green', card: 'theme', bg: 'plain' },
+  look: { ...DEFAULT_LOOK },
   lastCollect: '',
   cubeAcc: 0,
   v: GAME_VERSION,
@@ -170,11 +171,22 @@ export function collectPassive(g: Game, now: number) {
 
 /** Old garden (growth in days) → minutes; also fills fields added later. Safe to call on any stored value. */
 const OLD_DAYS: Record<string, number> = { tulip: 2, sunflower: 3, cactus: 3, rose: 4, tree: 6 };
+/** Face items were removed in version 3; owners get their coins back. */
+const REFUND_FACE: Record<string, number> = { 'face:shades': 120, 'face:goggles': 200, 'face:phones': 250 };
+
 export function migrateGame(raw: Partial<Game>): Game {
   const base = emptyGame();
-  const g = { ...base, ...raw, look: { ...base.look, ...(raw.look ?? {}) }, seeds: { ...(raw.seeds ?? {}) }, owned: [...(raw.owned ?? [])] } as Game;
-  if (!raw.v || raw.v < 2) {
-    g.plots = (raw.plots ?? base.plots).map((p) => {
+  // Only known look slots survive (a removed slot such as "face" is dropped).
+  const look = Object.fromEntries(
+    (Object.keys(DEFAULT_LOOK) as (keyof Look)[]).map((slot) => [slot, (raw.look as Partial<Look> | undefined)?.[slot] ?? DEFAULT_LOOK[slot]]),
+  ) as Look;
+  const g = { ...base, ...raw, look, seeds: { ...(raw.seeds ?? {}) }, owned: Array.isArray(raw.owned) ? [...raw.owned] : [] } as Game;
+  if (!Number.isFinite(g.coins)) g.coins = 0;
+  if (!Number.isFinite(g.cubes)) g.cubes = 0;
+  if (!Array.isArray(g.plots)) g.plots = base.plots;
+  const from = raw.v ?? 1;
+  if (from < 2) {
+    g.plots = g.plots.map((p) => {
       const item = p && itemById(p.id);
       if (!p) return null;
       if (!item) return p; // unknown id: keep it instead of deleting the player's plant
@@ -182,8 +194,16 @@ export function migrateGame(raw: Partial<Game>): Game {
       const old = OLD_DAYS[p.id] ?? 1;
       return { id: p.id, grown: Math.min(item.minutes, Math.round((p.grown / old) * item.minutes)) };
     });
-    g.v = GAME_VERSION;
   }
+  if (from < 3) {
+    let refund = 0;
+    g.owned = g.owned.filter((k) => {
+      if (k in REFUND_FACE) { refund += REFUND_FACE[k]; return false; }
+      return !k.startsWith('face:');
+    });
+    g.coins += refund;
+  }
+  g.v = Math.max(from, GAME_VERSION);
   while (g.plots.length < PLOTS) g.plots.push(null);
   return g;
 }

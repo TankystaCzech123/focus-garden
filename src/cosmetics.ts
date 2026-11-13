@@ -1,15 +1,15 @@
-// Shop cosmetics for the profile: avatar, hat, face item, frame, card colour and profile background. Pure data + rules.
+// Shop cosmetics for the profile: avatar, hat, frame, card colour and profile background. Pure data + rules.
 import type { Game } from './garden.ts';
 
-export type Slot = 'avatar' | 'hat' | 'face' | 'frame' | 'card' | 'bg';
+export type Slot = 'avatar' | 'hat' | 'frame' | 'card' | 'bg';
 export type Look = Record<Slot, string>;
 export type Cosmetic = {
   id: string;
   slot: Slot;
   name: string;
   price: number; // 0 = free, always owned
-  emoji?: string; // avatar / hat / face
-  colors?: string[]; // frame: 1 colour or 4 (top, right, bottom, left)
+  emoji?: string; // avatar / hat
+  colors?: string[]; // frame: 1 colour, or several for a gradient
   card?: { bg: string; fg: string }; // card colour
   bg?: { light: string; dark: string }; // profile background per theme
 };
@@ -29,11 +29,6 @@ export const COSMETICS: Cosmetic[] = [
   { id: 'straw', slot: 'hat', name: 'Slaměný klobouk', price: 150, emoji: '👒' },
   { id: 'tophat', slot: 'hat', name: 'Cylindr', price: 300, emoji: '🎩' },
   { id: 'crown', slot: 'hat', name: 'Koruna', price: 1000, emoji: '👑' },
-  // face items
-  { id: 'none', slot: 'face', name: 'Bez doplňku', price: 0, emoji: '' },
-  { id: 'shades', slot: 'face', name: 'Sluneční brýle', price: 120, emoji: '🕶️' },
-  { id: 'goggles', slot: 'face', name: 'Potápěčské brýle', price: 200, emoji: '🥽' },
-  { id: 'phones', slot: 'face', name: 'Sluchátka', price: 250, emoji: '🎧' },
   // frames
   { id: 'green', slot: 'frame', name: 'Zelený', price: 0, colors: ['#58CC02'] },
   { id: 'blue', slot: 'frame', name: 'Modrý', price: 100, colors: ['#1CB0F6'] },
@@ -58,8 +53,8 @@ export const COSMETICS: Cosmetic[] = [
   { id: 'bgdusk', slot: 'bg', name: 'Soumrak', price: 250, bg: { light: '#FFE9E0', dark: '#2A1A2E' } },
 ];
 
-export const SLOT_NAMES: Record<Slot, string> = { avatar: 'Avatar', hat: 'Čepice', face: 'Doplněk', frame: 'Rámeček', card: 'Karta', bg: 'Pozadí' };
-export const DEFAULT_LOOK: Look = { avatar: 'smile', hat: 'none', face: 'none', frame: 'green', card: 'theme', bg: 'plain' };
+export const SLOT_NAMES: Record<Slot, string> = { avatar: 'Avatar', hat: 'Čepice', frame: 'Rámeček', card: 'Karta', bg: 'Pozadí' };
+export const DEFAULT_LOOK: Look = { avatar: 'smile', hat: 'none', frame: 'green', card: 'theme', bg: 'plain' };
 
 export const cosmeticOf = (slot: Slot, id: string) => COSMETICS.find((c) => c.slot === slot && c.id === id);
 const key = (slot: Slot, id: string) => `${slot}:${id}`;
@@ -82,5 +77,5 @@ export function equip(g: Game, slot: Slot, id: string): Game | null {
 /** Resolved look for rendering (unknown ids fall back to defaults). */
 export function resolveLook(look: Look) {
   const pick = (slot: Slot) => cosmeticOf(slot, look[slot]) ?? cosmeticOf(slot, DEFAULT_LOOK[slot])!;
-  return { avatar: pick('avatar'), hat: pick('hat'), face: pick('face'), frame: pick('frame'), card: pick('card'), bg: pick('bg') };
+  return { avatar: pick('avatar'), hat: pick('hat'), frame: pick('frame'), card: pick('card'), bg: pick('bg') };
 }

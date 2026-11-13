@@ -39,10 +39,10 @@ All rules live in [`src/rules.ts`](../src/rules.ts) as pure functions and are co
 
 - **Decorations** (look only, no bonus): mushroom 30, bee 90, butterfly 90, rabbit 140, lantern 180, owl 240, fountain 300.
 - **Balance** (simulated in `tests/garden.test.ts`): focusing 60 min a day buys the first plant on day 2 and all ten plants in about two months; 30 min a day takes about three months. The passive income always stays below the active income.
-- **Migration:** gardens from older versions (growth in days) are converted to minutes proportionally, so nothing is lost.
+- **Migration:** gardens from older versions (growth in days) are converted to minutes proportionally, so nothing is lost. Face items (removed in version 3) are refunded at their purchase price.
 
 ## Profile customisation
-Avatar (emoji), hat, face item, frame, card colour and profile background are bought in the shop (free defaults are always owned) and worn on the profile and the share card. Prices range from 100 to 1200 coins.
+Avatar (emoji), hat, frame (the rainbow frame is a gradient), card colour and profile background are bought in the shop (free defaults are always owned) and worn on the profile and the share card. Prices range from 100 to 1200 coins.
 
 ## Known trade-offs
 - A day with 1 minute of focus still counts as a completed day for the streak; coins, however, scale with minutes.

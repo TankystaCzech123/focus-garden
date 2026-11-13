@@ -118,7 +118,7 @@ test('expansion adds plots step by step', () => {
 test('migration: old day-based growth becomes minutes and missing fields are filled', () => {
   const old = { coins: 5, cubes: 1, plots: [{ id: 'tulip', grown: 1 }, { id: 'tree', grown: 6 }, { id: 'bee', grown: 0 }, { id: 'ghost', grown: 3 }, ...Array(8).fill(null)] };
   const g = migrateGame(old as never);
-  assert.equal(g.v, 2);
+  assert.equal(g.v, 3);
   assert.equal(g.plots[0]?.grown, 15); // 1 of 2 days of a 30-minute plant
   assert.equal(g.plots[1]?.grown, 600); // fully grown stays fully grown
   assert.deepEqual(g.plots[2], { id: 'bee', grown: 0 });
@@ -189,7 +189,7 @@ test('real load path: an OLD save is migrated (not mistaken for the new version)
   assert.equal(g.plots[0]?.grown, 600); // fully grown stays fully grown
   assert.equal(g.plots[1]?.grown, 30);
   assert.equal(g.coins, 40);
-  assert.equal(g.v, 2);
+  assert.equal(g.v, 3);
   assert.equal((await loadGameFrom(kv)).plots[0]?.grown, 600); // loading again does not change anything
   store.set('focus.game', '{broken');
   assert.equal((await loadGameFrom(kv)).plots.length, 12); // corrupt save does not crash
@@ -211,4 +211,36 @@ test('clock shifted back and forth cannot be used to collect the garden bonus re
 test('migration keeps plants with unknown ids', () => {
   const g = migrateGame({ plots: [{ id: 'future-plant', grown: 5 }, ...Array(11).fill(null)] } as never);
   assert.deepEqual(g.plots[0], { id: 'future-plant', grown: 5 });
+});
+
+test('migration v3: face items are removed and their price refunded exactly once', () => {
+  const v2 = { v: 2, coins: 10, cubes: 0, plots: Array(12).fill(null), seeds: {}, owned: ['face:shades', 'hat:cap', 'face:phones'], look: { avatar: 'fox', hat: 'cap', face: 'shades', frame: 'gold', card: 'theme', bg: 'plain' }, lastCollect: '', cubeAcc: 0 };
+  const g = migrateGame(v2 as never);
+  assert.equal(g.coins, 10 + 120 + 250);
+  assert.deepEqual(g.owned, ['hat:cap']);
+  assert.equal('face' in g.look, false);
+  assert.equal(g.look.avatar, 'fox'); // the rest of the look is kept
+  assert.equal(g.v, 3);
+  const again = migrateGame(g);
+  assert.equal(again.coins, g.coins); // not refunded twice
+  assert.deepEqual(again.owned, ['hat:cap']);
+  // an old v1 save goes through both migration steps
+  const v1 = migrateGame({ coins: 5, plots: [{ id: 'tulip', grown: 2 }, ...Array(11).fill(null)] } as never);
+  assert.equal(v1.plots[0]?.grown, 30);
+  assert.equal(v1.coins, 5);
+});
+
+test('no face slot or items remain in the cosmetics catalog', () => {
+  assert.equal(COSMETICS.some((c) => (c.slot as string) === 'face'), false);
+  assert.equal(Object.keys(resolveLook({ avatar: 'smile', hat: 'none', frame: 'rainbow', card: 'theme', bg: 'plain' })).includes('face'), false);
+  const rainbow = COSMETICS.find((c) => c.slot === 'frame' && c.id === 'rainbow')!;
+  assert.equal(rainbow.colors?.length, 4); // gradient needs several colours
+});
+
+test('migration survives garbage input and never lowers the version', () => {
+  const g = migrateGame({ coins: '10', owned: 5, plots: 'x', look: null, v: 1 } as never);
+  assert.equal(g.coins, 0);
+  assert.deepEqual(g.owned, []);
+  assert.equal(g.plots.length, 12);
+  assert.equal(migrateGame({ v: 9 } as never).v, 9);
 });

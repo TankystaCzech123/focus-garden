@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Avatar from './Avatar';
+import Avatar, { FrameCircle } from './Avatar';
 import Chunky from './Chunky';
 import { COSMETICS, Cosmetic, Slot, SLOT_NAMES, isOwned } from './cosmetics';
 import { CATALOG, Game, bonusText, isPlant, minutesText, nextExpansion } from './rules';
@@ -13,7 +13,7 @@ const SECTIONS: { id: Section; label: string }[] = [
   { id: 'look', label: '🎨 Vzhled' },
   { id: 'plots', label: '🟫 Pole' },
 ];
-const GROUPS: Record<'avatar' | 'look', Slot[]> = { avatar: ['avatar', 'hat', 'face'], look: ['frame', 'card', 'bg'] };
+const GROUPS: Record<'avatar' | 'look', Slot[]> = { avatar: ['avatar', 'hat'], look: ['frame', 'card', 'bg'] };
 
 type Props = {
   game: Game;
@@ -35,7 +35,7 @@ export default function ShopScreen(p: Props) {
   const preview = (co: Cosmetic) => {
     if (co.slot === 'avatar') return <Text style={s.emoji}>{co.emoji}</Text>;
     if (co.emoji !== undefined) return <Text style={s.emoji}>{co.emoji || '∅'}</Text>;
-    if (co.colors) return <View style={[s.swatch, { backgroundColor: co.colors[0] }]} />;
+    if (co.colors) return <View style={{ marginHorizontal: 2 }}><FrameCircle colors={co.colors} size={40} /></View>;
     if (co.card) return <View style={[s.swatch, { backgroundColor: co.card.bg, borderWidth: 2, borderColor: co.card.fg }]} />;
     if (co.bg) return <View style={[s.swatch, { backgroundColor: co.bg.light, borderWidth: 2, borderColor: c.border }]} />;
     return <View style={[s.swatch, { backgroundColor: c.card, borderWidth: 2, borderColor: c.border }]} />;
