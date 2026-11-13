@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
+🌱 **[Prohlédnout webovou prezentaci Focus Garden](https://tankystaczech123.github.io/focus-garden/)**
+
 **A gamified focus app for Android and iOS.** Pick a handful of apps once, tap one button, and your whole phone
 shrinks down to just those apps. Keep your daily streak, earn coins and grow a little garden while you stay focused.
 
